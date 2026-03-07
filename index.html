@@ -829,8 +829,9 @@ function initDemo(){
     {text:'Lectura color aumi',                      notes:'',                                 pri:'media',st:'pend',   createdBy:'victor'},
   ].forEach(t=>bts.push({id:uid(),...t,seen:false,ca:nowMs()-rnd(1,4)*86400000,eid:null}));
 
+  const _vloc=CLIENTS&&CLIENTS[1]?CLIENTS[1].loc:HQ;
   const locs={
-    victor:   {lat:CLIENTS[1].loc.lat,lng:CLIENTS[1].loc.lng,acc:14,ts:nowMs()-rnd(2,12)*60000,st:'working'},
+    victor:   {lat:_vloc.lat,lng:_vloc.lng,acc:14,ts:nowMs()-rnd(2,12)*60000,st:'working'},
     alejandro:{lat:HQ.lat,lng:HQ.lng,acc:9,ts:nowMs()-rnd(1,5)*60000,st:'working'},
     carla:    {lat:HQ.lat,lng:HQ.lng,acc:5,ts:nowMs()-rnd(1,8)*60000,st:'working'},
   };
@@ -911,7 +912,7 @@ const EmpPin={
 const App={
   emp:null,_int:null,_lInt:null,
 
-  init(){refreshClients();initDemo();Splash.render();App._globalClk()},
+  init(){refreshClients();try{initDemo();}catch(e){console.warn('initDemo error:',e);}Splash.render();App._globalClk()},
 
   back(){
     clearInterval(App._int);clearInterval(App._lInt);
