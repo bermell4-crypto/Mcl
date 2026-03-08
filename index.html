@@ -1447,7 +1447,7 @@ const ER={
     const rt=RT.today(App.emp.id);
     const s=rt.stops.find(x=>x.id===sid);if(!s)return;
     // Build modal content
-    const empOpts=EMPS.filter(e=>e.id!==App.emp.id)
+    const empOpts=EMPS.filter(e=>e.id!==App.emp.id && e.type!=='ofic')
       .map(e=>`<button class="btn btn-gh" style="display:flex;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;margin-bottom:7px" onclick="ER._doReassign('${sid}','${e.id}')">
         <div style="width:32px;height:32px;border-radius:50%;background:${e.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">${e.av}</div>
         <div style="text-align:left"><div style="font-size:14px;font-weight:700;color:var(--tx)">${e.name}</div><div style="font-size:11px;color:var(--tx3)">${e.role}</div></div>
@@ -1705,7 +1705,7 @@ const EQ={
   _open:{}, // which colleague panels are expanded
   render(){
     const emp=App.emp;if(!emp)return;
-    const companions=EMPS.filter(e=>e.id!==emp.id);
+    const companions=EMPS.filter(e=>e.id!==emp.id && e.type!=='ofic');
     const el=document.getElementById('t-equipo');if(!el)return;
     el.innerHTML=`
       <div class="sh"><div class="st">Rutas del Equipo</div>
@@ -2405,7 +2405,7 @@ const ATR={
     const sel=document.getElementById('atr-emp');
     if(sel&&App.emp){
       sel.innerHTML=`<option value="${App.emp.id}">👤 Yo mismo (${App.emp.name})</option>`
-        +EMPS.filter(e=>e.id!==App.emp.id).map(e=>`<option value="${e.id}">${e.name} · ${e.role}</option>`).join('');
+        +EMPS.filter(e=>e.id!==App.emp.id && e.type!=='ofic').map(e=>`<option value="${e.id}">${e.name} · ${e.role}</option>`).join('');
     }
     UI.sm('atr-modal');
   },
