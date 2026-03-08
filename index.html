@@ -406,7 +406,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mb">
       <div class="fg">
         <label class="fl">Nombre del taller / cliente <span style="color:var(--er)">*</span></label>
-        <input id="s-name" class="fc" placeholder="Ej: Taller Hermanos García">
+        <input id="s-name" class="fc" placeholder="Ej: Taller Hermanos García" autocomplete="off">
       </div>
       <div class="fg">
         <label class="fl">Actividad <span style="color:var(--er)">*</span></label>
@@ -418,8 +418,8 @@ tr:hover td{background:rgba(240,120,40,.025)}
         </div>
       </div>
       <div class="frow">
-        <div class="fg"><label class="fl">Hora estimada</label><input id="s-time" class="fc" type="time"></div>
-        <div class="fg"><label class="fl">Notas</label><input id="s-notes" class="fc" placeholder="Referencia, albarán..."></div>
+        <div class="fg"><label class="fl">Hora estimada</label><input id="s-time" class="fc" type="time" autocomplete="off"></div>
+        <div class="fg"><label class="fl">Notas</label><input id="s-notes" class="fc" placeholder="Referencia, albarán..." autocomplete="off"></div>
       </div>
     </div>
     <div class="mf">
@@ -441,7 +441,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     </div>
     <div class="mf">
       <button class="btn btn-gh f1" onclick="UI.hm('exec-modal')">Cancelar</button>
-      <button class="btn btn-ok f1" onclick="EX.confirm()">✅ Confirmar realizado</button>
+      <button class="btn btn-ok f1" onclick="EX.confirm()">✅ HECHO</button>
     </div>
   </div>
 </div>
@@ -473,7 +473,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mh"><span class="mt">💬 Resumen del día</span><button class="mc" onclick="UI.hm('wa-modal');UI.toast('¡Hasta mañana! 👋','ok',3000)">✕</button></div>
     <div class="mb">
       <div class="al al-ok mb8" style="font-size:13px">🎉 ¡Jornada completada! Tu resumen está listo.</div>
-      <textarea id="wa-msg" class="fc" rows="10" readonly style="font-size:12px;font-family:monospace;resize:none"></textarea>
+      <textarea id="wa-msg" class="fc" rows="10" readonly style="font-size:12px;font-family:monospace;resize:none" autocomplete="off"></textarea>
     </div>
     <div class="mf" style="flex-direction:column;gap:8px">
       <button class="btn btn-ok btn-blk" onclick="WA.send()">💬 Enviar por WhatsApp</button>
@@ -507,7 +507,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
       </div>
       <div class="fg">
         <label class="fl">Hora estimada</label>
-        <input id="atr-time" class="fc" type="time">
+        <input id="atr-time" class="fc" type="time" autocomplete="off">
       </div>
     </div>
     <div class="mf">
@@ -535,7 +535,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
       <div id="et-taller-section" style="display:none">
         <div class="fg">
           <label class="fl">Taller / Cliente <span style="color:var(--er)">*</span></label>
-          <input id="et-taller" class="fc" placeholder="Nombre del taller..." oninput="ETF._sugg(this.value)">
+          <input id="et-taller" class="fc" placeholder="Nombre del taller..." autocomplete="off" oninput="ETF._sugg(this.value)">
           <div id="et-suggest" style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px"></div>
         </div>
         <div class="fg" id="et-addr-section" style="display:none">
@@ -554,11 +554,11 @@ tr:hover td{background:rgba(240,120,40,.025)}
 
       <div class="fg" id="et-txt-section">
         <label class="fl">Descripción <span style="color:var(--er)">*</span></label>
-        <input id="et-txt" class="fc" placeholder="Qué hay que hacer...">
+        <input id="et-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off">
       </div>
       <div class="fg">
         <label class="fl">Notas</label>
-        <textarea id="et-not" class="fc" rows="2" placeholder="Detalles, referencias, albarán..."></textarea>
+        <textarea id="et-not" class="fc" rows="2" placeholder="Detalles, referencias, albarán..." autocomplete="off"></textarea>
       </div>
       <div class="fg">
         <label class="fl">Prioridad</label>
@@ -1031,6 +1031,9 @@ const App={
     FireSync.subscribe();
     refreshClients();
     BT.purgeOld(); // Remove completed tasks older than 24h
+    // Remove worker-visible routes older than yesterday (boss keeps them in Firestore)
+    const yd=new Date();yd.setDate(yd.getDate()-1);const ydStr=yd.toISOString().slice(0,10);
+    DB.set(K.RT,DB.all(K.RT).filter(r=>r.date>=ydStr));
 
     try{initDemo();}catch(e){console.warn('initDemo error:',e);}
 
@@ -1311,26 +1314,32 @@ const ER={
     const emp=App.emp;if(!emp)return;
     const rt=RT.today(emp.id);const stops=rt.stops;
     const dn=stops.filter(s=>s.done).length;
+    const allDone=dn===stops.length&&stops.length>0;
+    // Pending first, then done — unless all are done (show original order)
+    const sorted=allDone?stops:[...stops.filter(s=>!s.done),...stops.filter(s=>s.done)];
     const stopsHtml=stops.length===0?`<div class="es"><div class="ei">🗺</div><div class="et">Sin paradas</div><div class="ed">Pulsa "+ Parada" para planificar la ruta</div></div>`
-      :stops.map((s,i)=>{
+      :sorted.map((s,i)=>{
         const t=AT[s.type]||{icon:'📌',label:s.type,color:'#888'};
-        const canU=i>0&&!stops[i-1].done&&!s.done,canD=i<stops.length-1&&!stops[i+1].done&&!s.done;
+        const origIdx=stops.indexOf(s);
+        const canU=origIdx>0&&!stops[origIdx-1].done&&!s.done,canD=origIdx<stops.length-1&&!stops[origIdx+1].done&&!s.done;
         return`<div class="sc ${s.done?'done':''}">
           <div class="sc-hdr">
-            <div class="sc-num" style="background:${s.done?'var(--ok)':emp.color};flex-shrink:0">${s.done?'✓':i+1}</div>
+            <div class="sc-num" style="background:${s.done?'var(--ok)':emp.color};flex-shrink:0">${s.done?'✓':origIdx+1}</div>
             <div class="sc-info" style="flex:1;min-width:0;overflow:hidden">
               <div class="sc-name">${esc(s.taller)}</div>
               <div class="sc-type">${t.icon} ${t.label}${s.est?` · ${s.est}`:''}</div>
             </div>
             ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ Hecho</span>`:''}
           </div>
-          ${!s.done?`
+          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">📋 ${esc(s.note)}</div>`:''}
+          ${s.note2?`<div style="margin:${s.note?'-4px':'0'} 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--ok);font-size:12px;color:var(--tx2);line-height:1.45">📝 ${esc(s.note2)}</div>`:''}
+          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">📋 ${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
           <div style="display:flex;align-items:center;gap:6px;padding:0 13px 11px;flex-wrap:nowrap">
             <div class="ob" style="flex-shrink:0">
               <button class="ob-btn" onclick="ER.mv('${s.id}',-1)" ${!canU?'disabled':''}>▲</button>
               <button class="ob-btn" onclick="ER.mv('${s.id}',1)" ${!canD?'disabled':''}>▼</button>
             </div>
-            <button class="btn btn-ok btn-sm" onclick="EX.open('${s.id}')" style="flex:1;justify-content:center">✅ Realizado</button>
+            <button class="btn btn-ok btn-sm" onclick="EX.open('${s.id}')" style="flex:1;justify-content:center">✅ HECHO</button>
             <div style="position:relative;flex-shrink:0">
               <button class="btn btn-sec btn-sm btn-ic" onclick="ER.toggleMenu('${s.id}')" style="font-size:18px;letter-spacing:1px;padding:5px 9px">⋯</button>
               <div id="smenu-${s.id}" class="hidden" style="position:absolute;right:0;bottom:38px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--r);min-width:185px;box-shadow:var(--sh);z-index:999;overflow:hidden">
@@ -1345,7 +1354,6 @@ const ER={
           ${s.postponedFrom?`<div style="padding:0 13px 8px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}`:''}
           ${s.done&&s.postponedFrom?`<div style="padding:0 13px 4px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
           ${s.done?`<div class="sc-foot"><div class="sc-time">🕐 ${tStr(s.doneAt)}</div></div>`:''}
-          ${s.note||s.note2?`<div class="sc-note">${s.note?`📋 ${esc(s.note)}`:''}${s.note&&s.note2?'<br>':''}${s.note2?`📝 ${esc(s.note2)}`:''}</div>`:''}
         </div>`;
       }).join('');
 
@@ -1568,7 +1576,7 @@ const SF={
       RT.addStop(App.emp.id,{taller:name,type:SF._t,est,note:notes,_taskId:taskId});
       const banner=document.getElementById('task-banner');if(banner)banner.remove();
       UI.hm('stop-modal');
-      if(SF._taskId){UI.toast('Tarea añadida a la ruta 🗺','ok');App.etab('ruta');}
+      if(SF._taskId){UI.toast('Tarea añadida a la ruta 🗺','ok');}
       else{UI.toast('Parada añadida ✅','ok');ER.render();}
     }
   },
@@ -1579,16 +1587,14 @@ const EX={
   _sid:null,_loc:null,_colorRows:1,
 
   open(sid){
-    EX._sid=sid;EX._loc=null;EX._colorRows=1;
+    EX._sid=sid;EX._loc=null;EX._cat='campo';EX._pri='media';
     const rt=RT.today(App.emp.id);
     const s=rt.stops.find(x=>x.id===sid);if(!s)return;
     const t=AT[s.type]||{};
     document.getElementById('ex-title').textContent=`${t.icon||''} ${t.label||s.type}`;
     document.getElementById('ex-sub').textContent=s.taller;
-    // Build contextual form
-    EX._buildForm(s.type);
+    EX._buildForm(s.type, s.taller);
     UI.sm('exec-modal');
-    // Silent background GPS
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(
         p=>{EX._loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};},
@@ -1598,127 +1604,82 @@ const EX={
     }
   },
 
-  _buildForm(type){
+  _buildForm(type, tallerName){
     const body=document.getElementById('ex-body');
-    const hasVisita=type==='visita';
-    const hasLectura=type==='lectura'||type==='entrega_lectura';
-    const hasEntrega=type==='entrega'||type==='entrega_lectura';
-    let html='';
-
-    if(hasVisita){
-      html+=`
-        <div class="fg">
-          <label class="fl">💬 ¿Qué se habló?</label>
-          <textarea id="ex-visita-notes" class="fc" rows="3" placeholder="Resultado de la visita, temas tratados..."></textarea>
+    body.innerHTML=`
+      <div style="padding-bottom:4px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--tx)">
+            <input type="checkbox" id="ex-create-task" style="width:20px;height:20px;accent-color:var(--acc);cursor:pointer" onchange="EX._toggleTaskForm()">
+            ➕ Crear tarea para <strong style="color:var(--acc)">${esc(tallerName)}</strong>
+          </label>
         </div>
-        <div class="fg">
-          <label class="fl">📌 Próxima acción</label>
-          <select id="ex-next-action" class="fc">
-            <option value="">Sin seguimiento necesario</option>
-            <option value="Enviar presupuesto">📄 Enviar presupuesto</option>
-            <option value="Llamar próxima semana">📞 Llamar próxima semana</option>
-            <option value="Visita siguiente semana">🚗 Visita siguiente semana</option>
-            <option value="Pedido pendiente de confirmar">⏳ Pedido pendiente de confirmar</option>
-            <option value="Cliente interesado — hacer seguimiento">⭐ Cliente interesado — seguimiento</option>
-          </select>
-        </div>`;
-    }
-
-    if(hasEntrega){
-      html+=`
-        <div class="fg">
-          <label class="fl">📄 Nº Albarán <span style="color:var(--tx3);font-weight:400">(opcional)</span></label>
-          <input id="ex-albaran" class="fc" type="text" placeholder="Ej: A-2481">
-        </div>`;
-    }
-
-    if(hasLectura){
-      html+=`
-        <div class="fg">
-          <label class="fl" style="margin-bottom:8px">🎨 Referencias de color solicitadas</label>
-          <div id="ex-color-rows" style="display:flex;flex-direction:column;gap:7px">
-            ${EX._colorRow(0)}
+        <div id="ex-task-form" style="display:none;flex-direction:column;gap:10px">
+          <div class="fg" style="margin:0">
+            <label class="fl">Categoría</label>
+            <div style="display:flex;gap:8px">
+              <button id="ex-cat-taller" class="btn btn-pri btn-sm" style="flex:1;flex-direction:column;padding:10px 6px;gap:3px;font-size:12px" onclick="EX._setCat('campo')">🏭<span>TALLER</span></button>
+              <button id="ex-cat-oficina" class="btn btn-gh btn-sm" style="flex:1;flex-direction:column;padding:10px 6px;gap:3px;font-size:12px" onclick="EX._setCat('oficina')">💼<span>OFICINA</span></button>
+            </div>
           </div>
-          <button class="btn btn-gh btn-sm" style="margin-top:8px;width:100%" onclick="EX._addColorRow()">+ Añadir referencia</button>
-        </div>`;
-    }
-
-    html+=`
-      <div class="fg">
-        <label class="fl">📝 Observaciones <span style="color:var(--tx3);font-weight:400">(opcional)</span></label>
-        <textarea id="ex-obs" class="fc" rows="2" placeholder="Cualquier anotación adicional..."></textarea>
+          <div class="fg" style="margin:0">
+            <label class="fl">¿Qué hay que hacer? <span style="color:var(--er)">*</span></label>
+            <textarea id="ex-task-txt" class="fc" rows="4" placeholder="Ej: Enviar presupuesto, Pedido pintura, Llamar cliente..." autocomplete="off" style="resize:none"></textarea>
+          </div>
+          <div class="fg" style="margin:0">
+            <label class="fl">Prioridad</label>
+            <div style="display:flex;gap:6px">
+              <button id="ex-pri-alta" class="btn btn-gh btn-sm" style="flex:1" onclick="EX._setPri('alta')">🔴 Alta</button>
+              <button id="ex-pri-media" class="btn btn-pri btn-sm" style="flex:1" onclick="EX._setPri('media')">🟡 Media</button>
+              <button id="ex-pri-baja" class="btn btn-gh btn-sm" style="flex:1" onclick="EX._setPri('baja')">🟢 Baja</button>
+            </div>
+          </div>
+        </div>
       </div>`;
-
-    body.innerHTML=html;
+    EX._cat='campo';
+    EX._pri='media';
   },
 
-  _colorRow(i){
-    return`<div id="ex-crow-${i}" style="display:flex;gap:6px;align-items:center">
-      <input class="fc" id="ex-cref-${i}" type="text" placeholder="Referencia" style="flex:2;min-width:0">
-      <input class="fc" id="ex-cqty-${i}" type="number" min="0" step="0.5" placeholder="Cant." style="flex:1;min-width:0">
-      <select class="fc" id="ex-cunit-${i}" style="flex:1;min-width:0">
-        <option value="kg">kg</option>
-        <option value="L">L</option>
-        <option value="botes">botes</option>
-        <option value="uds">uds</option>
-      </select>
-      ${i>0?`<button class="btn btn-gh btn-sm btn-ic" onclick="EX._delColorRow(${i})" style="flex-shrink:0;padding:6px 8px">✕</button>`:''}
-    </div>`;
+  _toggleTaskForm(){
+    const show=document.getElementById('ex-create-task').checked;
+    document.getElementById('ex-task-form').style.display=show?'flex':'none';
   },
 
-  _addColorRow(){
-    EX._colorRows++;
-    const i=EX._colorRows-1;
-    const container=document.getElementById('ex-color-rows');
-    const div=document.createElement('div');
-    div.innerHTML=EX._colorRow(i);
-    container.appendChild(div.firstElementChild);
+  _setCat(cat){
+    EX._cat=cat;
+    document.getElementById('ex-cat-taller').className=`btn btn-sm${cat==='campo'?' btn-pri':' btn-gh'}`+' '+'style="flex:1;flex-direction:column;padding:10px 6px;gap:3px;font-size:12px"';
+    document.getElementById('ex-cat-taller').className='btn btn-sm '+(cat==='campo'?'btn-pri':'btn-gh');
+    document.getElementById('ex-cat-oficina').className='btn btn-sm '+(cat==='oficina'?'btn-pri':'btn-gh');
   },
 
-  _delColorRow(i){
-    const el=document.getElementById(`ex-crow-${i}`);
-    if(el)el.remove();
-  },
-
-  _collectColorRefs(){
-    const refs=[];
-    for(let i=0;i<EX._colorRows;i++){
-      const ref=document.getElementById(`ex-cref-${i}`)?.value?.trim();
-      const qty=document.getElementById(`ex-cqty-${i}`)?.value?.trim();
-      const unit=document.getElementById(`ex-cunit-${i}`)?.value||'kg';
-      if(ref)refs.push({ref,qty:qty||'',unit});
-    }
-    return refs;
+  _setPri(pri){
+    EX._pri=pri;
+    ['alta','media','baja'].forEach(p=>{
+      document.getElementById('ex-pri-'+p).className='btn btn-sm '+(p===pri?'btn-pri':'btn-gh');
+    });
   },
 
   confirm(){
     const l=EX._loc;
     const rt=RT.today(App.emp.id);
     const stop=rt.stops.find(s=>s.id===EX._sid);if(!stop)return;
-    const type=stop.type;
 
-    // Collect fields
-    const obs=(document.getElementById('ex-obs')?.value||'').trim();
-    const visitaNotes=(document.getElementById('ex-visita-notes')?.value||'').trim();
-    const nextAction=(document.getElementById('ex-next-action')?.value||'').trim();
-    const albaran=(document.getElementById('ex-albaran')?.value||'').trim();
-    const colorRefs=EX._collectColorRefs();
-
-    // Build structured note2
-    const parts=[];
-    if(visitaNotes)parts.push(`💬 ${visitaNotes}`);
-    if(nextAction)parts.push(`📌 Próxima acción: ${nextAction}`);
-    if(albaran)parts.push(`📄 Albarán: ${albaran}`);
-    if(colorRefs.length>0){
-      parts.push(`🎨 Referencias:`);
-      colorRefs.forEach(r=>parts.push(`  · ${r.ref}${r.qty?' — '+r.qty+' '+r.unit:''}`));
-    }
-    if(obs)parts.push(`📝 ${obs}`);
-
-    const note2=parts.join('\n');
-    RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,note2);
+    RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,'');
     if(stop._taskId)BT.setSt(stop._taskId,'comp');
-    UI.hm('exec-modal');UI.toast('Actividad registrada ✅','ok');ER.render();App._updBadge();
+
+    const createTask=document.getElementById('ex-create-task')?.checked;
+    if(createTask){
+      const txt=(document.getElementById('ex-task-txt')?.value||'').trim();
+      if(txt){
+        BT.add(txt,'',EX._pri,App.emp?.id,EX._cat,stop.taller,'');
+        UI.toast('Parada completada + tarea creada ✅','ok');
+      } else {
+        UI.toast('Actividad registrada ✅','ok');
+      }
+    } else {
+      UI.toast('Actividad registrada ✅','ok');
+    }
+    UI.hm('exec-modal');ER.render();App._updBadge();
   },
 };
 
@@ -1806,7 +1767,7 @@ const ET={
       panel.innerHTML=`
         <div class="sh"><div class="st">Tareas del Equipo</div><button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button></div>
         <div style="position:relative;margin-bottom:10px">
-          <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px">
+          <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px" autocomplete="off">
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;overflow-x:auto;padding-bottom:2px" id="et-filters"></div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;align-items:center">
@@ -1880,7 +1841,7 @@ const ET={
         ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
           ${t.cat!=='campo'?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.1;margin-bottom:${t.taller?'0':'3px'}">${esc(t.text)}</div>`:''}
-          ${t.notes?`<div style="font-size:12px;color:var(--tx3);margin-top:2px">${esc(t.notes)}</div>`:''}
+          ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
@@ -1889,8 +1850,11 @@ const ET={
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${t.cat==='campo'?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
             ${t.st!=='comp'
-              ?`<button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ Completar</button>`
-              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ Completada${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
+              ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
+                  ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
+                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ Hecho</button>
+                </div>`
+              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ Hecho${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
             }
           `}
           <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
@@ -1904,6 +1868,13 @@ const ET={
   },
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
   search(val){ET._search=val;ET._renderList()},
+  toTaller(id){
+    UI.confirm('🏭 Pasar a Taller','¿Mover esta tarea de Oficina a Taller para que la sirvan?',()=>{
+      BT.update(id,{cat:'campo'});
+      ET._renderList();
+      UI.toast('Tarea pasada a Taller 🏭','ok');
+    });
+  },
   complete(id){
     const task=BT.all().find(t=>t.id===id);
     const label=task?.cat==='almacen'?'almacén':'oficina';
@@ -2295,7 +2266,7 @@ const BTF={
       <div id="bt-taller-section" style="display:none">
         <div class="fg">
           <label class="fl">Taller / Cliente <span style="color:var(--er)">*</span></label>
-          <input id="bt-taller" class="fc" placeholder="Nombre del taller...">
+          <input id="bt-taller" class="fc" placeholder="Nombre del taller..." autocomplete="off">
         </div>
         <div class="fg">
           <label class="fl">Actividad <span style="color:var(--er)">*</span></label>
@@ -2307,8 +2278,8 @@ const BTF={
           </div>
         </div>
       </div>
-      <div class="fg" id="bt-txt-section"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..."></div>
-      <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..."></textarea></div>
+      <div class="fg" id="bt-txt-section"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off"></div>
+      <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off"></textarea></div>
       <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta</option><option value="media" selected>🟡 Media</option><option value="baja">🟢 Baja</option></select></div>`;
     UI.sm('bt-modal');
     setTimeout(()=>document.getElementById('btc-campo')?.focus(),300);
@@ -2368,7 +2339,7 @@ const BTF={
       <div id="bt-taller-section" style="display:${t.cat==='campo'?'block':'none'}">
         <div class="fg">
           <label class="fl">Taller / Cliente <span style="color:var(--er)">*</span></label>
-          <input id="bt-taller" class="fc" placeholder="Nombre del taller..." value="${esc(t.taller||'')}">
+          <input id="bt-taller" class="fc" placeholder="Nombre del taller..." autocomplete="off" value="${esc(t.taller||'')}">
         </div>
         <div class="fg">
           <label class="fl">Actividad <span style="color:var(--er)">*</span></label>
@@ -2380,8 +2351,8 @@ const BTF={
           </div>
         </div>
       </div>
-      <div class="fg" id="bt-txt-section" style="display:${t.cat==='campo'?'none':'block'}"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." value="${esc(t.cat!=='campo'?t.text||'':'')}"></div>
-      <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias...">${esc(t.notes||'')}</textarea></div>
+      <div class="fg" id="bt-txt-section" style="display:${t.cat==='campo'?'none':'block'}"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." value="${esc(t.cat!=='campo'?t.text||'':'')}" autocomplete="off"></div>
+      <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off">${esc(t.notes||'')}</textarea></div>
       <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 Baja</option></select></div>`;
     UI.sm('bt-modal');
   },
@@ -2432,7 +2403,6 @@ const ATR={
     const isSelf=toEid===App.emp?.id;
     UI.toast(isSelf?'Añadido a tu ruta 🗺':`Asignado a ${toEmp?.name} 🗺`,'ok');
     ET.render();
-    if(isSelf)App.etab('ruta');
   },
 };
 
@@ -2475,7 +2445,7 @@ const TMPL={
         <div style="margin-bottom:14px">
           <div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:8px">Guardar ruta actual como plantilla</div>
           <div style="display:flex;gap:8px">
-            <input id="tmpl-name" class="fc" style="flex:1" placeholder="Nombre (ej: Ruta zona norte)">
+            <input id="tmpl-name" class="fc" style="flex:1" placeholder="Nombre (ej: Ruta zona norte)" autocomplete="off">
             <button class="btn btn-pri btn-sm" onclick="TMPL._save()" style="flex-shrink:0">💾 Guardar</button>
           </div>
         </div>`:''}
@@ -2610,12 +2580,12 @@ const BT_MGR={
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx2);margin-bottom:8px">Añadir nuevo taller</div>
         <div class="fg" style="margin-bottom:8px">
           <label class="fl">Nombre del taller</label>
-          <input id="tm-name" class="fc" placeholder="Ej: Taller García">
+          <input id="tm-name" class="fc" placeholder="Ej: Taller García" autocomplete="off">
         </div>
         <div class="fg" style="margin-bottom:8px">
           <label class="fl">Buscar dirección</label>
           <div style="display:flex;gap:6px">
-            <input id="tm-addr" class="fc" placeholder="Ej: Calle Mayor 5, Valencia" style="flex:1" onkeydown="if(event.key==='Enter')BT_MGR.search()">
+            <input id="tm-addr" class="fc" placeholder="Ej: Calle Mayor 5, Valencia" style="flex:1" onkeydown="if(event.key==='Enter')BT_MGR.search()" autocomplete="off">
             <button class="btn btn-pri btn-sm" onclick="BT_MGR.search()" style="flex-shrink:0">🔍 Buscar</button>
           </div>
         </div>
