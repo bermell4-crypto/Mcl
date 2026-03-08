@@ -166,7 +166,7 @@ textarea.fc{resize:vertical;min-height:60px;line-height:1.5}
 .st{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 
 /* Route stop card */
-.sc{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:border-color .15s}
+.sc{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:8px;overflow:visible;transition:border-color .15s;position:relative}
 .sc.done{opacity:.6}
 .sc.active{border-color:var(--acc);box-shadow:0 0 0 2px var(--acdim)}
 .sc-hdr{padding:12px 13px;display:flex;align-items:center;gap:10px}
@@ -302,12 +302,14 @@ tr:hover td{background:rgba(240,120,40,.025)}
   </header>
   <nav class="tab-nav">
     <button class="tab-btn active" data-et="fichar" onclick="App.etab('fichar')">⏱ Fichar</button>
-    <button class="tab-btn" data-et="ruta" onclick="App.etab('ruta')">🗺 Ruta</button>
+    <button class="tab-btn" data-et="ruta" onclick="App.etab('ruta')">🗺 Mi Ruta</button>
+    <button class="tab-btn" data-et="equipo" onclick="App.etab('equipo')">👥 Equipo</button>
     <button class="tab-btn" data-et="tareas" onclick="App.etab('tareas')" id="tt-btn">📌 Tareas</button>
   </nav>
   <div class="content">
     <div id="t-fichar" class="tab-panel active"></div>
     <div id="t-ruta" class="tab-panel"></div>
+    <div id="t-equipo" class="tab-panel"></div>
     <div id="t-tareas" class="tab-panel"></div>
   </div>
 </div>
@@ -394,8 +396,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mb">
       <div class="fg">
         <label class="fl">Nombre del taller / cliente <span style="color:var(--er)">*</span></label>
-        <input id="s-name" class="fc" placeholder="Ej: Taller Hermanos García" oninput="SF.suggest(this.value)">
-        <div id="s-suggest" style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px"></div>
+        <input id="s-name" class="fc" placeholder="Ej: Taller Hermanos García">
       </div>
       <div class="fg">
         <label class="fl">Actividad <span style="color:var(--er)">*</span></label>
@@ -474,17 +475,6 @@ tr:hover td{background:rgba(240,120,40,.025)}
 </div>
 
 <!-- MODAL: REASIGNAR PARADA -->
-<!-- CONFIRM TALLER LOCATION MODAL -->
-  <div id="confirm-loc-modal" class="mo hidden">
-    <div class="mbox" style="max-width:420px">
-      <div class="mh"><span class="mt">📍 ¿Cuál es este taller?</span><button class="mc" onclick="UI.hm('confirm-loc-modal')">✕</button></div>
-      <div class="mb">
-        <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">Selecciona la ubicación correcta para guardarla. Solo se pide una vez:</div>
-        <div id="confirm-loc-results"></div>
-        <button class="btn btn-gh btn-blk" style="margin-top:8px;font-size:12px" onclick="UI.hm('confirm-loc-modal')">No está en la lista, omitir</button>
-      </div>
-    </div>
-  </div>
 
   <div id="reasign-modal" class="mo hidden">
   <div class="md" style="max-width:360px">
@@ -688,13 +678,12 @@ const TR={
     return Math.max(0,m);
   },
   in:(eid,loc)=>{if(TR.today(eid))return;DB.push(K.TR,{id:uid(),eid,date:today(),ci:nowMs(),ls:null,le:null,lunchAccum:0,co:null,locI:loc,locO:null})},
-  ls:eid=>DB.map(K.TR,r=>{
+  ls:(eid,loc)=>DB.map(K.TR,r=>{
     if(r.eid!==eid||r.date!==today())return r;
-    // Si ya había una pausa completada (ls+le), acumular su duración antes de resetear
     const prev=(r.ls&&r.le)?Math.max(0,(r.le-r.ls)/60000):0;
-    return{...r,ls:nowMs(),le:null,lunchAccum:(r.lunchAccum||0)+prev};
+    return{...r,ls:nowMs(),le:null,lunchAccum:(r.lunchAccum||0)+prev,locL:loc||null};
   }),
-  le:eid=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,le:nowMs()}:r),
+  le:(eid,loc)=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,le:nowMs(),locR:loc||null}:r),
   out:(eid,loc)=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,co:nowMs(),locO:loc}:r),
   forDate:(eid,date)=>DB.find(K.TR,r=>r.eid===eid&&r.date===date),
 };
@@ -936,11 +925,50 @@ const App={
 
   enter(eid){
     App.emp=getEmp(eid);if(!App.emp)return;
+    // Auto-migrate pending stops from previous days to today
+    App._migratePendingStops(eid);
     BT.seen(eid);
     document.getElementById('e-hdr-name').textContent=App.emp.name;
     document.getElementById('e-hdr-role').textContent=App.emp.role;
     document.getElementById('e-hdr-st').innerHTML=UI.stBadge(TR.st(eid));
     App.showV('ve');App.etab('fichar');App._updBadge();App._startInt();App._startLoc(eid);
+  },
+
+  _migratePendingStops(eid){
+    const todayStr=today();
+    // 1. Bring pending stops from past days to today
+    const allRoutes=DB.all(K.RT).filter(r=>r.eid===eid&&r.date<todayStr);
+    let migrated=0;
+    allRoutes.forEach(r=>{
+      const pending=r.stops.filter(s=>!s.done);
+      if(pending.length===0)return;
+      const todayRoute=RT.today(eid);
+      pending.forEach(s=>todayRoute.stops.push({...s,id:uid(),done:false,doneAt:null,gLat:null,gLng:null,gAcc:null,note2:'',postponedFrom:r.date}));
+      RT.save(eid,todayStr,todayRoute);
+      const cleaned={...r,stops:r.stops.filter(s=>s.done)};
+      RT.save(eid,r.date,cleaned);
+      migrated+=pending.length;
+    });
+    if(migrated>0)UI.toast(`📅 ${migrated} parada${migrated===1?'':'s'} pendiente${migrated===1?'':'s'} recuperada${migrated===1?'':'s'} de días anteriores`,'in',4500);
+    // 2. Create tasks for any orphan stops (stops with no linked task)
+    const todayRoute=RT.today(eid);
+    let synced=0;
+    const updatedStops=todayRoute.stops.map(s=>{
+      if(s._taskId)return s; // already linked
+      // Create a new task and link it
+      const taskId=uid();
+      DB.push(K.BT,{id:taskId,text:s.taller,notes:s.note||'',pri:'media',
+        st:s.done?'comp':'en_proc',seen:true,ca:s.doneAt||nowMs(),
+        createdBy:eid,eid,routeEid:eid,cat:'campo',
+        taller:s.taller,actType:s.type,routeType:s.type,routeTaller:s.taller,
+        doneAt:s.done?s.doneAt:null});
+      synced++;
+      return{...s,_taskId:taskId};
+    });
+    if(synced>0){
+      RT.save(eid,todayStr,{...todayRoute,stops:updatedStops});
+      App._updBadge();
+    }
   },
 
   boss(){
@@ -954,10 +982,12 @@ const App={
     document.querySelectorAll('[data-et]').forEach(b=>b.classList.toggle('active',b.dataset.et===tab));
     document.querySelectorAll('#ve .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('t-'+tab).classList.add('active');
-    ({fichar:EF.render,ruta:ER.render,tareas:ET.render}[tab]||function(){})();
+    if(tab==='tareas'){ET._search='';document.getElementById('t-tareas').innerHTML='';}
+    ({fichar:EF.render,ruta:ER.render,equipo:EQ.render,tareas:ET.render}[tab]||function(){})();
   },
 
   btab(tab){
+    clearInterval(BD._liveInt);
     document.querySelectorAll('[data-bt]').forEach(b=>b.classList.toggle('active',b.dataset.bt===tab));
     document.querySelectorAll('#vb .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('bt-'+tab).classList.add('active');
@@ -989,50 +1019,9 @@ const App={
         const lat=p.coords.latitude,lng=p.coords.longitude,acc=Math.round(p.coords.accuracy);
         LC.set(eid,{lat,lng,acc,ts:nowMs(),st});
         RT.addTrail(eid,lat,lng);
-        // GPS AUTO-DETECT: check pending stops within 150m
-        App._checkProximity(eid,lat,lng);
       },()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:30000});
     };
-    cap();App._lInt=setInterval(cap,2*60*1000); // check every 2min
-  },
-
-  _checkProximity(eid,lat,lng){
-    const rt=RT.today(eid);
-    const pend=rt.stops.filter(s=>!s.done);
-    pend.forEach(s=>{
-      const cl=getClients().find(c=>c.n===s.taller);
-      if(!cl)return;
-      const dist=distM(lat,lng,cl.loc.lat,cl.loc.lng);
-      if(dist<=150){
-        // Only notify once per stop per session
-        if(App._nearNotified?.has(s.id))return;
-        if(!App._nearNotified)App._nearNotified=new Set();
-        App._nearNotified.add(s.id);
-        App._showNearToast(s);
-      }
-    });
-  },
-
-  _showNearToast(stop){
-    const at=AT[stop.type]||{icon:'📍',label:stop.type};
-    // Show a persistent banner with confirm button
-    let el=document.getElementById('near-banner');
-    if(!el){
-      el=document.createElement('div');
-      el.id='near-banner';
-      el.style.cssText='position:fixed;bottom:80px;left:12px;right:12px;z-index:9999;background:var(--okd);border:1.5px solid var(--ok);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4)';
-      document.body.appendChild(el);
-    }
-    el.innerHTML=`
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;color:var(--ok);font-weight:700;text-transform:uppercase;letter-spacing:.05em">📍 Estás cerca</div>
-        <div style="font-size:14px;color:var(--tx);font-weight:600;margin-top:2px">${esc(stop.taller)}</div>
-        <div style="font-size:12px;color:var(--tx3)">${at.icon} ${at.label}</div>
-      </div>
-      <button class="btn btn-ok btn-sm" onclick="EX.open('${stop.id}');document.getElementById('near-banner')?.remove()" style="flex-shrink:0;white-space:nowrap">✅ Realizar</button>
-      <button class="btn btn-gh btn-sm btn-ic" onclick="document.getElementById('near-banner')?.remove()" style="flex-shrink:0">✕</button>`;
-    // Auto-dismiss after 30s
-    setTimeout(()=>document.getElementById('near-banner')?.remove(),30000);
+    cap();App._lInt=setInterval(cap,60*1000);
   },
 
   _globalClk(){
@@ -1106,8 +1095,8 @@ const EF={
   },
   _gps(cb){if(!navigator.geolocation){cb(null);return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>cb(null),{timeout:8000,maximumAge:30000})},
   in(){EF._gps(loc=>{TR.in(App.emp.id,loc);UI.toast(MOTIVS[new Date().getDate()%MOTIVS.length].replace('{n}',App.emp.name),'ok',4000);EF.render()})},
-  ls(){TR.ls(App.emp.id);UI.toast('Pausa iniciada 🍽️','in');EF.render()},
-  le(){TR.le(App.emp.id);UI.toast('Jornada reanudada 💪','ok');EF.render()},
+  ls(){EF._gps(loc=>{TR.ls(App.emp.id,loc);UI.toast('Pausa iniciada 🍽️','in');EF.render()})},
+  le(){EF._gps(loc=>{TR.le(App.emp.id,loc);UI.toast('Jornada reanudada 💪','ok');EF.render()})},
   tryOut(){
     const rt=RT.today(App.emp.id),pend=rt.stops.filter(s=>!s.done);
     if(pend.length>0){
@@ -1187,11 +1176,17 @@ const ER={
               <button class="ob-btn" onclick="ER.mv('${s.id}',-1)" ${!canU?'disabled':''}>▲</button>
               <button class="ob-btn" onclick="ER.mv('${s.id}',1)" ${!canD?'disabled':''}>▼</button>
             </div>
-            <button class="btn btn-sec btn-sm btn-ic" onclick="SF.edit('${s.id}')" title="Editar" style="font-size:13px;flex-shrink:0">✏️</button>
             <button class="btn btn-ok btn-sm" onclick="EX.open('${s.id}')" style="flex:1;justify-content:center">✅ Realizado</button>
-            <button class="btn btn-wn btn-sm btn-ic" onclick="ER.reassign('${s.id}')" title="Pasar a compañero" style="flex-shrink:0">↔</button>
-            <button class="btn btn-in btn-sm btn-ic" onclick="ER.postponeStop('${s.id}')" title="Posponer al día siguiente" style="flex-shrink:0">📅</button>
-            <button class="btn btn-gh btn-sm btn-ic" onclick="ER.del('${s.id}')" title="Eliminar" style="flex-shrink:0">🗑</button>
+            <div style="position:relative;flex-shrink:0">
+              <button class="btn btn-sec btn-sm btn-ic" onclick="ER.toggleMenu('${s.id}')" style="font-size:18px;letter-spacing:1px;padding:5px 9px">⋯</button>
+              <div id="smenu-${s.id}" class="hidden" style="position:absolute;right:0;bottom:38px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--r);min-width:185px;box-shadow:var(--sh);z-index:999;overflow:hidden">
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');SF.edit('${s.id}')">✏️ &nbsp;Editar parada</button>
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');ER.reassign('${s.id}')">↔ &nbsp;Pasar a compañero</button>
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');ER.postponeStop('${s.id}')">📅 &nbsp;Posponer a mañana</button>
+                ${s._taskId?`<button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr);color:var(--in)" onclick="ER.toggleMenu('${s.id}');ER.returnToTask('${s.id}')">↩️ &nbsp;Devolver a tarea</button>`:''}
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;color:var(--er)" onclick="ER.toggleMenu('${s.id}');ER.del('${s.id}')">🗑 &nbsp;Eliminar parada</button>
+              </div>
+            </div>
           </div>
           ${s.postponedFrom?`<div style="padding:0 13px 8px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}`:''}
           ${s.done&&s.postponedFrom?`<div style="padding:0 13px 4px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
@@ -1204,7 +1199,6 @@ const ER={
     document.getElementById('t-ruta').innerHTML=`
       <div class="sh"><div class="st">Mi Ruta de Hoy</div>
         <div style="display:flex;gap:6px">
-          ${stops.filter(s=>!s.done).length>1?`<button class="btn btn-sec btn-sm" onclick="ER.sortByDist()" title="Ordenar por distancia">📍 Ordenar</button>`:''}
           <button class="btn btn-gh btn-sm" onclick="TMPL.open()" title="Plantillas">📋</button>
           <button class="btn btn-pri btn-sm" onclick="SF.open()">+ Parada</button>
         </div>
@@ -1252,38 +1246,6 @@ const ER={
     if(execPts.length>1)ER._map.fitBounds(L.latLngBounds([[HQ.lat,HQ.lng],...execPts]),{padding:[20,20]});
   },
 
-  sortByDist(){
-    const eid=App.emp.id;
-    const rt=RT.today(eid);
-    const done=rt.stops.filter(s=>s.done);
-    const pend=rt.stops.filter(s=>!s.done);
-    if(pend.length<2){UI.toast('No hay suficientes paradas para ordenar','in');return}
-    // Get current position or use HQ as start
-    const sortFrom=(lat,lng)=>{
-      // Nearest-neighbor greedy sort
-      let remaining=[...pend],sorted=[],curLat=lat,curLng=lng;
-      while(remaining.length){
-        const cl_stops=remaining.map(s=>{
-          const cl=getClients().find(c=>c.n===s.taller);
-          return{s,dist:cl?distM(curLat,curLng,cl.loc.lat,cl.loc.lng):99999};
-        });
-        cl_stops.sort((a,b)=>a.dist-b.dist);
-        const nearest=cl_stops[0];
-        sorted.push(nearest.s);
-        const nc=getClients().find(c=>c.n===nearest.s.taller);
-        if(nc){curLat=nc.loc.lat;curLng=nc.loc.lng}
-        remaining=remaining.filter(s=>s.id!==nearest.s.id);
-      }
-      rt.stops=[...done,...sorted];
-      RT.save(eid,today(),rt);
-      UI.toast('Ruta ordenada por distancia 📍','ok');
-      ER.render();
-    };
-    // Try to use live location, fall back to HQ
-    const loc=LC.get(eid);
-    if(loc&&loc.lat)sortFrom(loc.lat,loc.lng);
-    else sortFrom(HQ.lat,HQ.lng);
-  },
   postponeStop(sid){
     const tomorrow=pastDate(-1); // next day
     const rt=RT.today(App.emp.id);
@@ -1334,7 +1296,38 @@ const ER={
     UI.toast(`Parada pasada a ${toEmp?.name} ↔`,'ok');
     ER.render();
   },
-  del(sid){UI.confirm('Eliminar parada','¿Eliminar esta parada de la ruta?',()=>{RT.del(App.emp.id,sid);ER.render();UI.toast('Parada eliminada','in')})},
+  toggleMenu(sid){
+    const menu=document.getElementById('smenu-'+sid);
+    if(!menu)return;
+    const isHidden=menu.classList.contains('hidden');
+    // Close all menus first
+    document.querySelectorAll('[id^="smenu-"]').forEach(m=>m.classList.add('hidden'));
+    if(isHidden){
+      menu.classList.remove('hidden');
+      const close=e=>{if(!menu.contains(e.target)&&!e.target.closest('[onclick*="toggleMenu"]')){menu.classList.add('hidden');document.removeEventListener('click',close,true)}};
+      setTimeout(()=>document.addEventListener('click',close,true),10);
+    }
+  },
+  returnToTask(sid){
+    const rt=RT.today(App.emp.id);
+    const s=rt.stops.find(x=>x.id===sid);if(!s||!s._taskId)return;
+    UI.confirm('↩️ Devolver a tarea','La parada se eliminará de la ruta y la tarea volverá a estado pendiente.',()=>{
+      RT.del(App.emp.id,sid);
+      DB.map(K.BT,t=>t.id===s._taskId?{...t,routeEid:null,eid:null,st:'pend'}:t);
+      UI.toast('Devuelta a tareas pendientes ↩️','in');
+      ER.render();
+    });
+  },
+  del(sid){
+    const rt=RT.today(App.emp.id);
+    const s=rt.stops.find(x=>x.id===sid);
+    UI.confirm('Eliminar parada',s?._taskId?'Se eliminará la parada y su tarea asociada.':'¿Eliminar esta parada de la ruta?',()=>{
+      if(s?._taskId)BT.del(s._taskId);
+      RT.del(App.emp.id,sid);
+      ER.render();App._updBadge();
+      UI.toast(s?._taskId?'Parada y tarea eliminadas 🗑':'Parada eliminada','in');
+    });
+  },
 };
 
 /* ─── STOP FORM ─── */
@@ -1390,40 +1383,39 @@ const SF={
     SF._t=t;
     ['visita','lectura','entrega','entrega_lectura'].forEach(x=>{const b=document.getElementById('st-'+x);if(b){b.classList.toggle('btn-pri',x===t);b.classList.toggle('btn-gh',x!==t)}});
   },
-  suggest(v){SF._sugg(v)},
-  _sugg(v=''){
-    const c=document.getElementById('s-suggest');if(!c)return;
-    const fl=getClients().filter(cl=>!v||cl.n.toLowerCase().includes(v.toLowerCase())).slice(0,6);
-    c.innerHTML=fl.map(cl=>`<button class="btn btn-gh btn-sm" style="font-size:11px;padding:3px 8px;text-transform:none;letter-spacing:0" onclick="document.getElementById('s-name').value='${cl.n.replace(/'/,"\\'")}'">${cl.n}</button>`).join('');
-  },
+  suggest(v){},
+  _sugg(v=''){},  
   save(){
     const name=document.getElementById('s-name')?.value?.trim();
     if(!name){UI.toast('Escribe el nombre del taller','wn');return}
     if(!SF._t){UI.toast('Selecciona la actividad','wn');return}
     if(SF._editId){
       const r=RT.today(App.emp.id);
+      const stop=r.stops.find(s=>s.id===SF._editId);
       r.stops=r.stops.map(s=>s.id===SF._editId?{...s,taller:name,type:SF._t,est:gv('s-time')||'',note:gv('s-notes')||''}:s);
       RT.save(App.emp.id,today(),r);
+      // Sync linked task fields
+      if(stop&&stop._taskId)BT.update(stop._taskId,{taller:name,actType:SF._t,text:name});
       const banner=document.getElementById('task-banner');if(banner)banner.remove();
       UI.hm('stop-modal');UI.toast('Parada actualizada ✅','ok');ER.render();
     }else{
-      const stopData={taller:name,type:SF._t,est:gv('s-time')||'',note:gv('s-notes')||''};
-      if(SF._taskId){
-        stopData._taskId=SF._taskId;
-        // Auto-mark task as "en proceso"
-        const task=BT.all(App.emp.id).find(t=>t.id===SF._taskId);
-        if(task&&task.st==='pend')BT.setSt(SF._taskId,'en_proc');
+      const notes=gv('s-notes')||'',est=gv('s-time')||'';
+      let taskId=SF._taskId;
+      if(!taskId){
+        // Always create a linked task for every new manual stop
+        taskId=uid();
+        DB.push(K.BT,{id:taskId,text:name,notes,pri:'media',st:'en_proc',seen:true,ca:nowMs(),
+          createdBy:App.emp?.id,eid:App.emp?.id,routeEid:App.emp?.id,cat:'campo',
+          taller:name,actType:SF._t,routeType:SF._t,routeTaller:name});
+        App._updBadge();
+      }else{
+        BT.update(taskId,{routeEid:App.emp?.id,st:'en_proc',eid:App.emp?.id});
       }
-      RT.addStop(App.emp.id,stopData);
-      geocodeAndSaveTaller(name);
+      RT.addStop(App.emp.id,{taller:name,type:SF._t,est,note:notes,_taskId:taskId});
       const banner=document.getElementById('task-banner');if(banner)banner.remove();
       UI.hm('stop-modal');
-      if(SF._taskId){
-        UI.toast('Tarea añadida a la ruta 🗺','ok');
-        App.etab('ruta');
-      }else{
-        UI.toast('Parada añadida ✅','ok');ER.render();
-      }
+      if(SF._taskId){UI.toast('Tarea añadida a la ruta 🗺','ok');App.etab('ruta');}
+      else{UI.toast('Parada añadida ✅','ok');ER.render();}
     }
   },
 };
@@ -1470,16 +1462,125 @@ const EX={
   },
   confirm(){
     const l=EX._loc,note=gv('ex-notes')||'';
+    const rt=RT.today(App.emp.id);
+    const stop=rt.stops.find(s=>s.id===EX._sid);
     RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,note);
-    UI.hm('exec-modal');UI.toast('Actividad registrada ✅','ok');ER.render();
+    // Sync: mark linked task as complete
+    if(stop&&stop._taskId)BT.setSt(stop._taskId,'comp');
+    UI.hm('exec-modal');UI.toast('Actividad registrada ✅','ok');ER.render();App._updBadge();
+  },
+};
+
+/* ─── RUTAS DEL EQUIPO ─── */
+const EQ={
+  _open:{}, // which colleague panels are expanded
+  render(){
+    const emp=App.emp;if(!emp)return;
+    const companions=EMPS.filter(e=>e.id!==emp.id);
+    const el=document.getElementById('t-equipo');if(!el)return;
+    el.innerHTML=`
+      <div class="sh"><div class="st">Rutas del Equipo</div>
+        <div style="font-size:11px;color:var(--tx3);font-family:'Barlow Condensed',sans-serif;letter-spacing:.05em">Solo lectura · Hoy ${new Date().toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>
+      </div>
+      ${companions.map(c=>EQ._card(c)).join('')}`;
+  },
+  _card(c){
+    const rt=RT.today(c.id);
+    const stops=rt.stops;
+    const done=stops.filter(s=>s.done).length;
+    const pend=stops.filter(s=>!s.done).length;
+    const st=TR.st(c.id);
+    const isOpen=EQ._open[c.id];
+    const stBadge=UI.stBadge(st);
+    const stopsHtml=stops.length===0
+      ?`<div style="padding:10px 14px 14px;font-size:12px;color:var(--tx3)">Sin paradas asignadas hoy</div>`
+      :stops.map((s,i)=>{
+        const t=AT[s.type]||{icon:'📌',label:s.type};
+        return`<div style="padding:10px 14px;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:10px;${s.done?'opacity:.55':''}">
+          <div style="width:24px;height:24px;border-radius:50%;background:${s.done?'var(--ok)':c.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${s.done?'✓':i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.taller)}</div>
+            <div style="font-size:11px;color:var(--tx3)">${t.icon} ${t.label}${s.est?` · ${s.est}`:''}${s.done&&s.doneAt?` · ✓ ${tStr(s.doneAt)}`:''}</div>
+          </div>
+          ${!s.done?`<button class="btn btn-wn btn-sm btn-ic" onclick="EQ.take('${c.id}','${s.id}')" title="Asumir esta parada" style="flex-shrink:0;font-size:12px">↙ Asumir</button>`:''}
+        </div>`;
+      }).join('');
+    return`<div class="card mb12" style="padding:0;overflow:hidden">
+      <div style="padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="EQ.toggle('${c.id}')">
+        <div style="width:36px;height:36px;border-radius:50%;background:${c.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">${c.av}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;text-transform:uppercase">${c.name}</div>
+          <div style="font-size:11px;color:var(--tx3)">${c.role}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${stBadge}
+          ${stops.length>0?`<span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${done===stops.length&&stops.length>0?'var(--ok)':'var(--acc)'}">${done}/${stops.length}</span>`:'<span style="font-size:11px;color:var(--tx3)">Sin ruta</span>'}
+          <span style="font-size:16px;color:var(--tx3);transition:transform .2s;${isOpen?'transform:rotate(180deg)':''}">▾</span>
+        </div>
+      </div>
+      ${isOpen?stopsHtml:''}
+    </div>`;
+  },
+  toggle(eid){
+    EQ._open[eid]=!EQ._open[eid];
+    EQ.render();
+  },
+  take(fromEid,sid){
+    const emp=App.emp;if(!emp)return;
+    const fromRt=RT.today(fromEid);
+    const stop=fromRt.stops.find(s=>s.id===sid);if(!stop)return;
+    UI.confirm('↙ Asumir parada',`¿Asumir "${stop.taller}" de ${getEmp(fromEid)?.name}? Pasará a tu ruta.`,()=>{
+      RT.del(fromEid,sid);
+      const newStop={...stop,id:uid()};
+      RT.addStop(emp.id,newStop);
+      // Update linked task
+      if(stop._taskId)DB.map(K.BT,t=>t.id===stop._taskId?{...t,routeEid:emp.id,eid:emp.id}:t);
+      UI.toast(`Parada asumida ↙ Ahora está en tu ruta`,'ok');
+      EQ.render();
+      App._updBadge();
+    });
   },
 };
 
 /* ─── TAREAS ─── */
 const ET={
+  _filter:null,
+  _search:'',
   render(){
     const emp=App.emp;if(!emp)return;
-    const all=BT.all().filter(t=>!ET._filter||t.cat===ET._filter);
+    // Only build full shell if not already present
+    const panel=document.getElementById('t-tareas');
+    if(!document.getElementById('et-list')){
+      panel.innerHTML=`
+        <div class="sh"><div class="st">Tareas del Equipo</div><button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button></div>
+        <div style="position:relative;margin-bottom:10px">
+          <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px" id="et-filters"></div>
+        <div id="et-list"></div>`;
+    }
+    ET._renderFilters();
+    ET._renderList();
+  },
+  _renderFilters(){
+    const el=document.getElementById('et-filters');if(!el)return;
+    el.innerHTML=
+      `<button class="btn btn-sm ${ET._filter===null?'btn-pri':'btn-gh'}" onclick="ET.filter(null)">Todas</button>`+
+      `<button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Sin asignar</button>`+
+      `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`+
+      `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`;
+  },
+  _renderList(){
+    const emp=App.emp;if(!emp)return;
+    const el=document.getElementById('et-list');if(!el)return;
+    const q=ET._search.toLowerCase().trim();
+    const all=BT.all().filter(t=>{
+      // Campo tasks already in a route → hide (they live in Ruta tab)
+      if(t.cat==='campo'&&t.routeEid)return false;
+      if(ET._filter&&t.cat!==ET._filter)return false;
+      if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
+      return true;
+    });
     const th=t=>{
       const creator=getEmp(t.createdBy);
       const assignedEmp=t.routeEid?getEmp(t.routeEid):null;
@@ -1502,29 +1603,45 @@ const ET={
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
           </div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          ${t.cat==='campo'?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">
-            ${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}
-          </button>`:'<div style="flex:1"></div>'}
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${t.cat==='campo'?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
+            ${t.st!=='comp'
+              ?`<button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ Completar</button>`
+              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px">✅ Completada${t.doneAt?' · '+tStr(t.doneAt):''}</span>`
+            }
+          `}
           <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
           <button class="btn btn-gh btn-sm btn-ic" onclick="ET.del('${t.id}')" title="Eliminar">🗑</button>
         </div>
       </div>`;
     };
-    document.getElementById('t-tareas').innerHTML=`
-      <div class="sh"><div class="st">Tareas del Equipo</div><button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button></div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
-        <button class="btn btn-sm ${ET._filter===null?'btn-pri':'btn-gh'}" onclick="ET.filter(null)">Todas</button>
-        <button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Taller</button>
-        <button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>
-        <button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>
-      </div>
-      ${all.length===0?'<div class="es"><div class="ei">📌</div><div class="et">Sin tareas</div></div>':''}
-      ${all.map(th).join('')}`;
+    el.innerHTML=all.length===0
+      ?`<div class="es"><div class="ei">${q?'🔍':'📌'}</div><div class="et">${q?'Sin resultados':'Sin tareas'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
+      :all.map(th).join('');
   },
-  _filter:null,
-  filter(cat){ET._filter=cat;ET.render()},
-  del(id){UI.confirm('Eliminar tarea','¿Seguro que quieres eliminar esta tarea?',()=>{BT.del(id);ET.render();App._updBadge();UI.toast('Tarea eliminada','in')})},
+  filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
+  search(val){ET._search=val;ET._renderList()},
+  complete(id){
+    const done=()=>{BT.setSt(id,'comp');ET._renderList();App._updBadge();UI.toast('Tarea completada ✅','ok');};
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(p=>{
+        const lat=p.coords.latitude,lng=p.coords.longitude,acc=Math.round(p.coords.accuracy);
+        DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id,gLat:lat,gLng:lng,gAcc:acc}:t);
+        ET._renderList();App._updBadge();UI.toast('Tarea completada ✅','ok');
+      },()=>done(),{enableHighAccuracy:true,timeout:6000,maximumAge:0});
+    }else done();
+  },
+  del(id){UI.confirm('Eliminar tarea','¿Seguro que quieres eliminar esta tarea? Si tiene parada en ruta también se eliminará.',()=>{
+    const task=BT.all().find(t=>t.id===id);
+    if(task?.routeEid){
+      // Remove linked stop from route
+      const rt=RT.today(task.routeEid);
+      const stop=rt.stops.find(s=>s._taskId===id);
+      if(stop)RT.del(task.routeEid,stop.id);
+    }
+    BT.del(id);ET._renderList();App._updBadge();UI.toast('Tarea eliminada','in');
+    if(App.emp&&task?.routeEid===App.emp.id)ER.render();
+  })},
   edit(id){ETF.openEdit(id)},
 };
 
@@ -1566,6 +1683,32 @@ const BD={
         </div>`;
       }).join('');
 
+    // Fichajes timeline
+    const fichajeRows=EMPS.map(e=>{
+      const r=TR.today(e.id);if(!r?.ci)return'';
+      const gpsLink=(loc,label)=>loc?.lat?`<a href="https://maps.google.com/?q=${loc.lat},${loc.lng}" target="_blank" style="color:var(--in);font-size:10px;text-decoration:none">📍 ${label}</a>`:`<span style="font-size:10px;color:var(--tx3)">Sin GPS</span>`;
+      const events=[];
+      if(r.ci)events.push({ts:r.ci,icon:'🟢',label:'Entrada',loc:r.locI});
+      if(r.ls)events.push({ts:r.ls,icon:'🍽️',label:'Pausa',loc:r.locL||null});
+      if(r.le)events.push({ts:r.le,icon:'▶️',label:'Reanuda',loc:r.locR||null});
+      if(r.co)events.push({ts:r.co,icon:'🔴',label:'Salida',loc:r.locO});
+      return`<div class="card mb8" style="padding:0;overflow:hidden">
+        <div style="padding:10px 14px;display:flex;align-items:center;gap:10px;background:var(--bg3)">
+          <div style="width:30px;height:30px;border-radius:50%;background:${e.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">${e.av}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;flex:1">${e.name}</div>
+          ${UI.stBadge(TR.st(e.id))}
+        </div>
+        ${events.map((ev,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;${i<events.length-1?'border-bottom:1px solid var(--bdr)':''}">
+          <span style="font-size:16px">${ev.icon}</span>
+          <div style="flex:1">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700">${ev.label}</span>
+            <span style="font-size:12px;color:var(--tx3);margin-left:8px">${tStr(ev.ts)}</span>
+          </div>
+          ${gpsLink(ev.loc,'Ver mapa')}
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+
     document.getElementById('bt-dash').innerHTML=`
       <div class="sg">
         <div class="scard"><div class="sv">${work}</div><div class="sl">Trabajando</div></div>
@@ -1574,13 +1717,70 @@ const BD={
         <div class="scard"><div class="sv">${allDone.length}</div><div class="sl">Actividades hoy</div></div>
       </div>
       ${alerts}
+      <div class="sh mt8"><div class="st">📍 Ubicación en Tiempo Real</div><span id="live-loc-ts" style="font-size:10px;color:var(--tx3);font-family:'Barlow Condensed',sans-serif"></span></div>
+      <div id="live-loc-map" style="height:280px;border-radius:var(--r);overflow:hidden;border:1px solid var(--bdr);background:var(--bg3);margin-bottom:14px"></div>
       <div class="sh mt8"><div class="st">Estado del Equipo</div></div>
       ${erows}
+      <div class="sh mt16"><div class="st">🕐 Fichajes de Hoy</div></div>
+      ${fichajeRows||'<div class="es"><div class="et">Nadie ha fichado aún hoy</div></div>'}
       <div class="sh mt16"><div class="st">⚡ Actividad de Hoy</div></div>
       <div class="card">${feed}</div>
       <div style="text-align:center;margin-top:20px">
         <button class="btn btn-gh btn-sm" onclick="UI.confirm('Resetear demo','Se borrarán todos los datos y se recargarán los datos de ejemplo.',resetDemo)">🔄 Resetear demo</button>
       </div>`;
+    BD._buildLiveMap();
+    BD._startLiveRefresh();
+  },
+  _liveMap:null,_liveMarkers:{},_liveInt:null,
+  _startLiveRefresh(){
+    clearInterval(BD._liveInt);
+    BD._liveInt=setInterval(()=>{
+      if(!document.getElementById('live-loc-map'))return clearInterval(BD._liveInt);
+      BD._updateLiveMarkers();
+    },15000);
+  },
+  _buildLiveMap(){
+    if(BD._liveMap){BD._liveMap.remove();BD._liveMap=null;BD._liveMarkers={};}
+    const el=document.getElementById('live-loc-map');if(!el)return;
+    BD._liveMap=L.map('live-loc-map',{center:[HQ.lat,HQ.lng],zoom:11,zoomControl:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'© OpenStreetMap © CARTO'}).addTo(BD._liveMap);
+    L.circleMarker([HQ.lat,HQ.lng],{radius:8,fillColor:'#f07828',color:'#fff',fillOpacity:1,weight:2}).addTo(BD._liveMap).bindPopup('<b>MacroColor Levante</b><br>Sede Beniparrell');
+    BD._updateLiveMarkers();
+  },
+  _updateLiveMarkers(){
+    if(!BD._liveMap)return;
+    // Draw completed stop GPS points (small dots)
+    if(BD._stopLayer){BD._stopLayer.clearLayers();}
+    else{BD._stopLayer=L.layerGroup().addTo(BD._liveMap);}
+    DB.all(K.RT).filter(r=>r.date===today()).forEach(r=>{
+      const emp=getEmp(r.eid);if(!emp)return;
+      r.stops.filter(s=>s.done&&s.gLat!=null).forEach(s=>{
+        const at=AT[s.type]||{icon:'📌',label:s.type};
+        L.circleMarker([s.gLat,s.gLng],{radius:5,fillColor:emp.color,color:'#fff',fillOpacity:.85,weight:1.5})
+          .addTo(BD._stopLayer)
+          .bindPopup(`<b>${emp.name}</b><br>${at.icon} ${s.taller}<br>🕐 ${tStr(s.doneAt)}<br>±${s.gAcc}m`);
+      });
+    });
+    const pts=[];
+    EMPS.forEach(e=>{
+      const loc=LC.get(e.id);
+      if(!loc||!loc.lat)return;
+      const age=Math.round((Date.now()-loc.ts)/60000);
+      const fresh=age<5;
+      const html=`<div style="background:${e.color};border:2px solid ${fresh?'#fff':'rgba(255,255,255,.4)'};border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.5);opacity:${fresh?1:.6}">${e.av}</div>`;
+      const ic=L.divIcon({html,className:'',iconSize:[36,36],iconAnchor:[18,18]});
+      const stName={working:'🟢 Trabajando',lunch:'🍽️ Comiendo',out:'🔴 Salió',none:'⚫ Sin fichar'}[TR.st(e.id)]||'';
+      const popup=`<b>${e.name}</b><br>${stName}<br>📍 ±${loc.acc}m<br>🕐 Hace ${age<1?'<1':age} min`;
+      if(BD._liveMarkers[e.id]){
+        BD._liveMarkers[e.id].setLatLng([loc.lat,loc.lng]).setPopupContent(popup);
+      }else{
+        BD._liveMarkers[e.id]=L.marker([loc.lat,loc.lng],{icon:ic}).addTo(BD._liveMap).bindPopup(popup);
+      }
+      pts.push([loc.lat,loc.lng]);
+    });
+    const ts=document.getElementById('live-loc-ts');
+    if(ts)ts.textContent=pts.length?`Actualizado ${new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})} · ${pts.length} activo${pts.length===1?'':'s'}`:'Sin ubicaciones activas';
+    if(pts.length){const all=[[HQ.lat,HQ.lng],...pts];BD._liveMap.fitBounds(L.latLngBounds(all),{padding:[30,30]});}
   },
   _empDetail(eid){App.btab('rutas');setTimeout(()=>BR._showEmp(eid),50)},
 };
@@ -1883,7 +2083,6 @@ const BTF={
       BT.add(text,gv('bt-not'),gv('bt-pri'),'boss',BTF._cat,taller,BTF._type||'');
       UI.hm('bt-modal');UI.toast('Tarea creada ✅','ok');
     }
-    if(BTF._cat==='campo'&&taller)geocodeAndSaveTaller(taller);
     BCom.render();
   },
   openEdit(id){
@@ -2048,62 +2247,6 @@ const TMPL={
   },
 };
 
-/* ─── GEOCODE HELPER ─── */
-async function geocodeAndSaveTaller(name){
-  if(!name)return;
-  const existing=getClients().find(c=>c.n.toLowerCase()===name.toLowerCase());
-  if(existing)return;
-  try{
-    // Search with Valencia region hint first
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+' Valencia España')}&format=json&limit=4&accept-language=es`,{headers:{'Accept-Language':'es'}});
-    let data=await r.json();
-    if(!data||!data.length){
-      const r2=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=4&accept-language=es`,{headers:{'Accept-Language':'es'}});
-      data=await r2.json();
-    }
-    if(!data||!data.length)return;
-    showConfirmLocation(name,data);
-  }catch(e){/* silent fail */}
-}
-
-let _pendingLocName=null;
-let _pendingLocResults=[];
-function showConfirmLocation(name,results){
-  _pendingLocName=name;
-  _pendingLocResults=results;
-  const el=document.getElementById('confirm-loc-results');
-  if(!el)return;
-  let html=`<div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">🏭 ${esc(name)}</div>`;
-  results.forEach((d,i)=>{
-    const addr=d.display_name.split(',').slice(0,4).join(', ');
-    const lat=parseFloat(d.lat).toFixed(4);
-    const lng=parseFloat(d.lon).toFixed(4);
-    html+=`<button class="btn btn-gh" style="width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;display:block" onclick="pickLocResult(${i})">
-      <div style="font-size:13px;color:var(--tx);font-weight:600;white-space:normal;line-height:1.4">${esc(addr)}</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:3px">📍 ${lat}, ${lng}</div>
-    </button>`;
-  });
-  el.innerHTML=html;
-  UI.sm('confirm-loc-modal');
-}
-function pickLocResult(i){
-  const d=_pendingLocResults[i];
-  if(!d||!_pendingLocName)return;
-  const addr=d.display_name.split(',').slice(0,4).join(', ');
-  confirmTallerLocation(_pendingLocName,parseFloat(d.lat),parseFloat(d.lon),addr);
-}
-
-function confirmTallerLocation(name,lat,lng,addr){
-  const clients=getClients();
-  const idx=clients.findIndex(c=>c.n.toLowerCase()===name.toLowerCase());
-  if(idx>=0)clients.splice(idx,1);
-  clients.push({n:name,loc:{lat,lng},addr});
-  LS.s(K.CL,clients);
-  refreshClients();
-  UI.hm('confirm-loc-modal');
-  UI.toast('📍 Ubicación guardada','ok');
-}
-
 /* ─── EMPLOYEE TASK FORM ─── */
 const ETF={
   _cat:null,_type:null,
@@ -2170,7 +2313,6 @@ const ETF={
       BT.add(text,notes,pri,App.emp?.id,ETF._cat,taller,ETF._type||'');
       UI.hm('etask-modal');UI.toast('Tarea creada ✅','ok');
     }
-    if(isCampo&&taller)geocodeAndSaveTaller(taller);
     ET.render();App._updBadge();
   },
   openEdit(id){
