@@ -802,6 +802,7 @@ const TR={
   }),
   le:(eid,loc)=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,le:nowMs(),locR:loc||null}:r),
   out:(eid,loc)=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,co:nowMs(),locO:loc}:r),
+  reopen:(eid)=>DB.map(K.TR,r=>r.eid===eid&&r.date===today()?{...r,co:null,locO:null}:r),
   forDate:(eid,date)=>DB.find(K.TR,r=>r.eid===eid&&r.date===date),
 };
 
@@ -1213,7 +1214,9 @@ const EF={
     if(!r?.ci)btns=`<button class="btn btn-ok btn-blk btn-lg" style="font-size:19px;padding:17px" onclick="EF.in()">⏱ FICHAR ENTRADA</button>`;
     else if(st==='working')btns=`<div class="df g8"><button class="btn btn-wn f1" style="padding:12px;font-size:15px" onclick="EF.ls()">🍽️ Pausa Comida</button><button class="btn btn-er f1" style="padding:12px;font-size:15px" onclick="EF.tryOut()">🏠 Fichar Salida</button></div>`;
     else if(st==='lunch')btns=`<button class="btn btn-ok btn-blk" style="padding:12px;font-size:15px" onclick="EF.le()">▶️ Reanudar Jornada</button>`;
-    else btns=`<div class="al al-ok" style="justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px">✅ Jornada cerrada a las ${tStr(r.co)}</div>`;
+    else btns=`
+      <div class="al al-ok" style="justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px">✅ Jornada cerrada a las ${tStr(r.co)}</div>
+      <button class="btn btn-sec btn-blk" style="margin-top:10px;padding:12px;font-size:14px" onclick="EF.reopen()">↩️ Volver a entrar</button>`;
     const rt=RT.today(emp.id),dn=rt.stops.filter(s=>s.done).length,tot=rt.stops.length;
     const rtHtml=emp.type==='campo'&&tot>0?`<div class="card mt12"><div class="card-hdr"><div class="card-t">🗺 Ruta de hoy</div><button class="btn btn-gh btn-sm" onclick="App.etab('ruta')">Ver →</button></div><div style="font-size:26px;font-weight:700;font-family:'Barlow Condensed',sans-serif;color:${dn===tot?'var(--ok)':'var(--acc)'}"> ${dn}<span style="font-size:15px;color:var(--tx3);font-weight:400"> / ${tot} paradas</span></div><div class="pgw mt8" style="height:5px"><div class="pgb" style="width:${pct(dn,tot||1)}%"></div></div></div>`:emp.type==='campo'?`<div class="card mt12 es" style="padding:16px"><div class="et">Sin ruta planificada hoy</div><div class="ed">Ve a "Ruta" para añadir paradas</div></div>`:'';
     document.getElementById('t-fichar').innerHTML=`
@@ -1231,11 +1234,19 @@ const EF={
         <div class="pgw"><div class="pgb ${p>=100?'ot':p>=87?'nw':''}" style="width:${p}%"></div></div>
         <div style="font-size:11px;color:var(--tx3);text-align:center;margin-bottom:13px">${p}% del objetivo (8h)</div>
         ${btns}
-        ${r?.locI?`<div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:8px">📍 Entrada: ${r.locI.lat}, ${r.locI.lng}</div>`:''}
       </div>${rtHtml}`;
   },
   _gps(cb){if(!navigator.geolocation){cb(null);return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>cb(null),{enableHighAccuracy:false,timeout:5000,maximumAge:60000})},
   in(){EF._gps(loc=>{TR.in(App.emp.id,loc);UI.toast(MOTIVS[new Date().getDate()%MOTIVS.length].replace('{n}',App.emp.name),'ok',4000);EF.render()})},
+  reopen(){
+    UI.confirm('↩️ Volver a entrar','¿Quieres reabrir tu jornada? Se borrará el fichaje de salida de hoy.',()=>{
+      TR.reopen(App.emp.id);
+      const se=document.getElementById('e-hdr-st');if(se)se.innerHTML=UI.stBadge(TR.st(App.emp.id));
+      App._startLoc(App.emp.id);
+      UI.toast('Jornada reabierta ✅','ok');
+      EF.render();
+    });
+  },
   ls(){EF._gps(loc=>{TR.ls(App.emp.id,loc);UI.toast('Pausa iniciada 🍽️','in');EF.render()})},
   le(){EF._gps(loc=>{TR.le(App.emp.id,loc);UI.toast('Jornada reanudada 💪','ok');EF.render()})},
   tryOut(){
