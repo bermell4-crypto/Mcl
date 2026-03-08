@@ -436,9 +436,8 @@ tr:hover td{background:rgba(240,120,40,.025)}
       <div><div class="mt" id="ex-title">Registrar</div><div style="font-size:12px;color:var(--tx3);margin-top:2px" id="ex-sub"></div></div>
       <button class="mc" onclick="UI.hm('exec-modal')">✕</button>
     </div>
-    <div class="mb">
-      <div id="ex-gps" class="hidden"></div>
-      <div class="fg"><label class="fl">Notas (opcional)</label><textarea id="ex-notes" class="fc" rows="2" placeholder="Resultado, observaciones..."></textarea></div>
+    <div class="mb" id="ex-body" style="display:flex;flex-direction:column;gap:12px">
+      <!-- Populated dynamically by EX.open() -->
     </div>
     <div class="mf">
       <button class="btn btn-gh f1" onclick="UI.hm('exec-modal')">Cancelar</button>
@@ -1275,7 +1274,13 @@ const EF={
         `⏱ Tiempo trabajado: *${h}h ${m}min*`,
         ``,
         `✅ *Paradas realizadas (${done.length}):*`,
-        ...done.map(s=>{const t=AT[s.type]||{icon:'📍'};return`  ${t.icon} ${s.taller}${s.doneAt?' · '+tStr(s.doneAt):''}`;})
+        ...done.flatMap(s=>{
+          const t=AT[s.type]||{icon:'📍'};
+          const header=`  ${t.icon} *${s.taller}*${s.doneAt?' · '+tStr(s.doneAt):''}`;
+          if(!s.note2)return[header];
+          const noteLines=s.note2.split('\n').map(l=>`    ${l}`);
+          return[header,...noteLines];
+        })
       ];
       if(doneTasks.length>0){
         lines.push('');
@@ -1571,18 +1576,19 @@ const SF={
 
 /* ─── EXECUTE STOP ─── */
 const EX={
-  _sid:null,_loc:null,
+  _sid:null,_loc:null,_colorRows:1,
+
   open(sid){
-    EX._sid=sid;EX._loc=null;
+    EX._sid=sid;EX._loc=null;EX._colorRows=1;
     const rt=RT.today(App.emp.id);
     const s=rt.stops.find(x=>x.id===sid);if(!s)return;
     const t=AT[s.type]||{};
     document.getElementById('ex-title').textContent=`${t.icon||''} ${t.label||s.type}`;
     document.getElementById('ex-sub').textContent=s.taller;
-    document.getElementById('ex-notes').value='';
-    EX._loc=null;
+    // Build contextual form
+    EX._buildForm(s.type);
     UI.sm('exec-modal');
-    // Silent background GPS — no UI shown to worker
+    // Silent background GPS
     if(navigator.geolocation){
       navigator.geolocation.getCurrentPosition(
         p=>{EX._loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};},
@@ -1591,12 +1597,127 @@ const EX={
       );
     }
   },
+
+  _buildForm(type){
+    const body=document.getElementById('ex-body');
+    const hasVisita=type==='visita';
+    const hasLectura=type==='lectura'||type==='entrega_lectura';
+    const hasEntrega=type==='entrega'||type==='entrega_lectura';
+    let html='';
+
+    if(hasVisita){
+      html+=`
+        <div class="fg">
+          <label class="fl">💬 ¿Qué se habló?</label>
+          <textarea id="ex-visita-notes" class="fc" rows="3" placeholder="Resultado de la visita, temas tratados..."></textarea>
+        </div>
+        <div class="fg">
+          <label class="fl">📌 Próxima acción</label>
+          <select id="ex-next-action" class="fc">
+            <option value="">Sin seguimiento necesario</option>
+            <option value="Enviar presupuesto">📄 Enviar presupuesto</option>
+            <option value="Llamar próxima semana">📞 Llamar próxima semana</option>
+            <option value="Visita siguiente semana">🚗 Visita siguiente semana</option>
+            <option value="Pedido pendiente de confirmar">⏳ Pedido pendiente de confirmar</option>
+            <option value="Cliente interesado — hacer seguimiento">⭐ Cliente interesado — seguimiento</option>
+          </select>
+        </div>`;
+    }
+
+    if(hasEntrega){
+      html+=`
+        <div class="fg">
+          <label class="fl">📄 Nº Albarán <span style="color:var(--tx3);font-weight:400">(opcional)</span></label>
+          <input id="ex-albaran" class="fc" type="text" placeholder="Ej: A-2481">
+        </div>`;
+    }
+
+    if(hasLectura){
+      html+=`
+        <div class="fg">
+          <label class="fl" style="margin-bottom:8px">🎨 Referencias de color solicitadas</label>
+          <div id="ex-color-rows" style="display:flex;flex-direction:column;gap:7px">
+            ${EX._colorRow(0)}
+          </div>
+          <button class="btn btn-gh btn-sm" style="margin-top:8px;width:100%" onclick="EX._addColorRow()">+ Añadir referencia</button>
+        </div>`;
+    }
+
+    html+=`
+      <div class="fg">
+        <label class="fl">📝 Observaciones <span style="color:var(--tx3);font-weight:400">(opcional)</span></label>
+        <textarea id="ex-obs" class="fc" rows="2" placeholder="Cualquier anotación adicional..."></textarea>
+      </div>`;
+
+    body.innerHTML=html;
+  },
+
+  _colorRow(i){
+    return`<div id="ex-crow-${i}" style="display:flex;gap:6px;align-items:center">
+      <input class="fc" id="ex-cref-${i}" type="text" placeholder="Referencia" style="flex:2;min-width:0">
+      <input class="fc" id="ex-cqty-${i}" type="number" min="0" step="0.5" placeholder="Cant." style="flex:1;min-width:0">
+      <select class="fc" id="ex-cunit-${i}" style="flex:1;min-width:0">
+        <option value="kg">kg</option>
+        <option value="L">L</option>
+        <option value="botes">botes</option>
+        <option value="uds">uds</option>
+      </select>
+      ${i>0?`<button class="btn btn-gh btn-sm btn-ic" onclick="EX._delColorRow(${i})" style="flex-shrink:0;padding:6px 8px">✕</button>`:''}
+    </div>`;
+  },
+
+  _addColorRow(){
+    EX._colorRows++;
+    const i=EX._colorRows-1;
+    const container=document.getElementById('ex-color-rows');
+    const div=document.createElement('div');
+    div.innerHTML=EX._colorRow(i);
+    container.appendChild(div.firstElementChild);
+  },
+
+  _delColorRow(i){
+    const el=document.getElementById(`ex-crow-${i}`);
+    if(el)el.remove();
+  },
+
+  _collectColorRefs(){
+    const refs=[];
+    for(let i=0;i<EX._colorRows;i++){
+      const ref=document.getElementById(`ex-cref-${i}`)?.value?.trim();
+      const qty=document.getElementById(`ex-cqty-${i}`)?.value?.trim();
+      const unit=document.getElementById(`ex-cunit-${i}`)?.value||'kg';
+      if(ref)refs.push({ref,qty:qty||'',unit});
+    }
+    return refs;
+  },
+
   confirm(){
-    const l=EX._loc,note=gv('ex-notes')||'';
+    const l=EX._loc;
     const rt=RT.today(App.emp.id);
-    const stop=rt.stops.find(s=>s.id===EX._sid);
-    RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,note);
-    if(stop&&stop._taskId)BT.setSt(stop._taskId,'comp');
+    const stop=rt.stops.find(s=>s.id===EX._sid);if(!stop)return;
+    const type=stop.type;
+
+    // Collect fields
+    const obs=(document.getElementById('ex-obs')?.value||'').trim();
+    const visitaNotes=(document.getElementById('ex-visita-notes')?.value||'').trim();
+    const nextAction=(document.getElementById('ex-next-action')?.value||'').trim();
+    const albaran=(document.getElementById('ex-albaran')?.value||'').trim();
+    const colorRefs=EX._collectColorRefs();
+
+    // Build structured note2
+    const parts=[];
+    if(visitaNotes)parts.push(`💬 ${visitaNotes}`);
+    if(nextAction)parts.push(`📌 Próxima acción: ${nextAction}`);
+    if(albaran)parts.push(`📄 Albarán: ${albaran}`);
+    if(colorRefs.length>0){
+      parts.push(`🎨 Referencias:`);
+      colorRefs.forEach(r=>parts.push(`  · ${r.ref}${r.qty?' — '+r.qty+' '+r.unit:''}`));
+    }
+    if(obs)parts.push(`📝 ${obs}`);
+
+    const note2=parts.join('\n');
+    RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,note2);
+    if(stop._taskId)BT.setSt(stop._taskId,'comp');
     UI.hm('exec-modal');UI.toast('Actividad registrada ✅','ok');ER.render();App._updBadge();
   },
 };
