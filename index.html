@@ -1749,20 +1749,19 @@ const ET={
       const caDate=t.ca?new Date(t.ca):null;
       const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1} ${String(caDate.getHours()).padStart(2,'0')}:${String(caDate.getMinutes()).padStart(2,'0')}`:'';
       return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
-            ${t.taller?`<span style="font-size:12px;font-weight:600;color:var(--tx2)">🏪 ${esc(t.taller)}</span>`:''}
             ${at?`<span style="font-size:11px;color:var(--tx3)">${at.icon} ${at.label}</span>`:''}
           </div>
           ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
+        ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${t.cat!=='campo'?`<div style="font-size:14px;color:var(--tx);font-weight:600">${esc(t.text)}</div>`:''}
+          ${t.cat!=='campo'?`<div style="font-size:13px;color:var(--tx2);font-weight:500">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="font-size:12px;color:var(--tx3);margin-top:2px">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
-            ${creator?`<span style="font-size:11px;color:var(--tx3)">👤 ${creator.name}</span>`:''}
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
           </div>
         </div>
