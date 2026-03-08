@@ -1084,6 +1084,10 @@ const App={
 
   _migratePendingStops(eid){
     const todayStr=today();
+    const dayOfWeek=new Date().getDay(); // 0=Dom, 6=Sáb
+    const isWeekday=dayOfWeek>=1&&dayOfWeek<=5;
+    // Only migrate on weekdays
+    if(!isWeekday)return;
     // 1. Bring pending stops from past days to today
     const allRoutes=DB.all(K.RT).filter(r=>r.eid===eid&&r.date<todayStr);
     let migrated=0;
@@ -1173,12 +1177,21 @@ const App={
   },
 
   _globalClk(){
+    let _lastDate=today();
     const tick=()=>{
       const n=new Date();
       const t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
       const ds=`${['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][n.getDay()]}, ${n.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][n.getMonth()]}`;
       const c=document.getElementById('sp-clk');if(c)c.textContent=t;
       const d=document.getElementById('sp-date');if(d)d.textContent=ds;
+      // Midnight reset — if day changed, reload splash
+      const nowDate=today();
+      if(nowDate!==_lastDate){
+        _lastDate=nowDate;
+        Splash.render();
+        // If employee view open, refresh fichaje too
+        if(App.emp){EF.render();App._updBadge();}
+      }
     };
     tick();setInterval(tick,20000);
   },
@@ -1190,14 +1203,11 @@ const Splash={
     const g=document.getElementById('emp-grid');if(!g)return;
     g.innerHTML=EMPS.map(emp=>{
       const st=TR.st(emp.id);
-      const r=RT.today(emp.id);
-      const dn=r.stops.filter(s=>s.done).length,tot=r.stops.length;
       const un=BT.unseen(emp.id).length;
       return`<div class="ecard" style="--ec:${emp.color}" onclick="EmpPin.open('${emp.id}')">
         <div class="eav" style="background:${emp.color}">${emp.av}</div>
         <div class="en">${emp.name}</div><div class="er">${emp.role}</div>
         <div class="est"><span class="sdot sdot-${st}"></span>${{working:'Trabajando',lunch:'Comiendo',out:'Salió',none:'Sin fichar'}[st]||'—'}${un>0?`<span class="nchip">${un}</span>`:''}</div>
-        ${tot>0?`<div style="font-size:10px;color:var(--tx3);margin-top:5px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.04em">${dn}/${tot} paradas</div>`:''}
       </div>`;
     }).join('');
   },
