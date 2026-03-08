@@ -427,7 +427,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
       <button class="mc" onclick="UI.hm('exec-modal')">✕</button>
     </div>
     <div class="mb">
-      <div id="ex-gps" class="al al-in mb8">📡 Obteniendo ubicación GPS...</div>
+      <div id="ex-gps" class="hidden"></div>
       <div class="fg"><label class="fl">Notas (opcional)</label><textarea id="ex-notes" class="fc" rows="2" placeholder="Resultado, observaciones..."></textarea></div>
     </div>
     <div class="mf">
@@ -901,7 +901,13 @@ const EmpPin={
 const App={
   emp:null,_int:null,_lInt:null,
 
-  init(){refreshClients();try{initDemo();}catch(e){console.warn('initDemo error:',e);}Splash.render();App._globalClk()},
+  init(){
+    refreshClients();
+    // Clear any stored taller locations (no longer used for verification)
+    LS.s(K.CL,[]);refreshClients();
+    try{initDemo();}catch(e){console.warn('initDemo error:',e);}
+    Splash.render();App._globalClk();
+  },
 
   back(){
     clearInterval(App._int);clearInterval(App._lInt);
@@ -1093,7 +1099,7 @@ const EF={
         ${r?.locI?`<div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:8px">📍 Entrada: ${r.locI.lat}, ${r.locI.lng}</div>`:''}
       </div>${rtHtml}`;
   },
-  _gps(cb){if(!navigator.geolocation){cb(null);return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>cb(null),{timeout:8000,maximumAge:30000})},
+  _gps(cb){if(!navigator.geolocation){cb(null);return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>cb(null),{enableHighAccuracy:false,timeout:5000,maximumAge:60000})},
   in(){EF._gps(loc=>{TR.in(App.emp.id,loc);UI.toast(MOTIVS[new Date().getDate()%MOTIVS.length].replace('{n}',App.emp.name),'ok',4000);EF.render()})},
   ls(){EF._gps(loc=>{TR.ls(App.emp.id,loc);UI.toast('Pausa iniciada 🍽️','in');EF.render()})},
   le(){EF._gps(loc=>{TR.le(App.emp.id,loc);UI.toast('Jornada reanudada 💪','ok');EF.render()})},
@@ -1431,41 +1437,22 @@ const EX={
     document.getElementById('ex-title').textContent=`${t.icon||''} ${t.label||s.type}`;
     document.getElementById('ex-sub').textContent=s.taller;
     document.getElementById('ex-notes').value='';
+    EX._loc=null;
     UI.sm('exec-modal');
-    EX._tryGps();
-  },
-  _tryGps(){
-    const gps=document.getElementById('ex-gps');
-    if(!gps)return;
-    if(!navigator.geolocation){
-      gps.className='al al-wn mb8';
-      gps.innerHTML='⚠️ GPS no disponible en este dispositivo.';
-      return;
+    // Silent background GPS — no UI shown to worker
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        p=>{EX._loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};},
+        ()=>{},
+        {enableHighAccuracy:true,timeout:8000,maximumAge:30000}
+      );
     }
-    gps.className='al al-in mb8';
-    gps.innerHTML='📡 Obteniendo ubicación GPS...';
-    navigator.geolocation.getCurrentPosition(
-      p=>{
-        EX._loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)};
-        gps.className='al al-ok mb8';
-        gps.innerHTML=`✅ GPS obtenido · ±${Math.round(p.coords.accuracy)}m`;
-      },
-      err=>{
-        const isBlocked=err.code===1;
-        gps.className='al al-wn mb8';
-        gps.innerHTML=isBlocked
-          ?`🔒 GPS bloqueado. En el navegador pulsa el 🔒 de la barra de dirección → Permisos → Ubicación → Permitir. <button class="btn btn-wn btn-sm" style="margin-top:6px;width:100%" onclick="EX._tryGps()">🔄 Reintentar GPS</button>`
-          :`⚠️ GPS no obtenido. Se guardará sin coordenadas. <button class="btn btn-gh btn-sm" style="margin-top:6px;width:100%" onclick="EX._tryGps()">🔄 Reintentar GPS</button>`;
-      },
-      {enableHighAccuracy:true,timeout:12000,maximumAge:0}
-    );
   },
   confirm(){
     const l=EX._loc,note=gv('ex-notes')||'';
     const rt=RT.today(App.emp.id);
     const stop=rt.stops.find(s=>s.id===EX._sid);
     RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,note);
-    // Sync: mark linked task as complete
     if(stop&&stop._taskId)BT.setSt(stop._taskId,'comp');
     UI.hm('exec-modal');UI.toast('Actividad registrada ✅','ok');ER.render();App._updBadge();
   },
@@ -1622,14 +1609,21 @@ const ET={
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
   search(val){ET._search=val;ET._renderList()},
   complete(id){
-    const done=()=>{BT.setSt(id,'comp');ET._renderList();App._updBadge();UI.toast('Tarea completada ✅','ok');};
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(p=>{
-        const lat=p.coords.latitude,lng=p.coords.longitude,acc=Math.round(p.coords.accuracy);
-        DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id,gLat:lat,gLng:lng,gAcc:acc}:t);
+    const task=BT.all().find(t=>t.id===id);
+    const label=task?.cat==='almacen'?'almacén':'oficina';
+    UI.confirm('✅ Completar tarea',`¿Marcar esta tarea de ${label} como completada?`,()=>{
+      const doComplete=(lat,lng,acc)=>{
+        DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id,gLat:lat??null,gLng:lng??null,gAcc:acc??null}:t);
         ET._renderList();App._updBadge();UI.toast('Tarea completada ✅','ok');
-      },()=>done(),{enableHighAccuracy:true,timeout:6000,maximumAge:0});
-    }else done();
+      };
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+          p=>doComplete(p.coords.latitude,p.coords.longitude,Math.round(p.coords.accuracy)),
+          ()=>doComplete(null,null,null),
+          {enableHighAccuracy:false,timeout:5000,maximumAge:60000}
+        );
+      }else doComplete(null,null,null);
+    });
   },
   del(id){UI.confirm('Eliminar tarea','¿Seguro que quieres eliminar esta tarea? Si tiene parada en ruta también se eliminará.',()=>{
     const task=BT.all().find(t=>t.id===id);
@@ -1899,24 +1893,10 @@ const BV={
 
     const cards=allStops.map(s=>{
       const t=AT[s.type]||{icon:'📌',label:s.type};
-      // Verify GPS: compare exec location vs known client location
       let verifyHtml='';
-      if(s.done&&s.gLat!=null){
-        // Find closest known client
-        const cl=getClients().find(c=>c.n===s.taller);
-        if(cl){
-          const dist=distM(s.gLat,s.gLng,cl.loc.lat,cl.loc.lng);
-          if(dist<=300)verifyHtml=`<span class="vbadge vb-ok">✅ Verificado · ${dist}m del taller</span>`;
-          else if(dist<=1000)verifyHtml=`<span class="vbadge vb-wn">⚠️ Posición a ${dist}m</span>`;
-          else verifyHtml=`<span class="vbadge" style="background:var(--erd);color:var(--er);border:1px solid rgba(240,40,88,.25)">❌ Lejos · ${dist}m del taller</span>`;
-        }else{
-          verifyHtml=`<span class="vbadge vb-ok">📍 GPS registrado</span>`;
-        }
-      }else if(s.done&&s.gLat==null){
-        verifyHtml=`<span class="vbadge vb-wn">⚠️ Sin GPS</span>`;
-      }else{
-        verifyHtml=`<span class="vbadge vb-no">⏳ Pendiente</span>`;
-      }
+      if(s.done&&s.gLat!=null) verifyHtml=`<span class="vbadge vb-ok">📍 GPS registrado</span>`;
+      else if(s.done)          verifyHtml=`<span class="vbadge vb-wn">⚠️ Sin GPS</span>`;
+      else                     verifyHtml=`<span class="vbadge vb-no">⏳ Pendiente</span>`;
 
       return`<div class="vc">
         <div class="vrow">
@@ -1937,23 +1917,14 @@ const BV={
 
     const total=allStops.length,done=allStops.filter(s=>s.done).length;
     const withGps=allStops.filter(s=>s.done&&s.gLat!=null).length;
-    const verified=allStops.filter(s=>{
-      if(!s.done||s.gLat==null)return false;
-      const cl=getClients().find(c=>c.n===s.taller);
-      return!cl||distM(s.gLat,s.gLng,cl.loc.lat,cl.loc.lng)<=300;
-    }).length;
 
     document.getElementById('bt-verif').innerHTML=`
       <div class="sh"><div class="st">Verificar Actividad</div></div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${dateBtns}</div>
-      <div class="sg" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      <div class="sg" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
         <div class="scard"><div class="sv">${total}</div><div class="sl">Total</div></div>
         <div class="scard"><div class="sv" style="color:var(--ok)">${done}</div><div class="sl">Hechas</div></div>
         <div class="scard"><div class="sv" style="color:var(--in)">${withGps}</div><div class="sl">Con GPS</div></div>
-        <div class="scard"><div class="sv" style="color:${verified===done&&done>0?'var(--ok)':'var(--wn)'}">${verified}</div><div class="sl">Verificadas</div></div>
-      </div>
-      <div class="al al-in mb12" style="font-size:12px">
-        ✅ <strong>Verificado</strong> = GPS ejecutado a menos de 300m del taller · ⚠️ entre 300-1000m · ❌ más de 1km
       </div>
       ${cards}`;
   },
