@@ -1339,7 +1339,7 @@ const ER={
           </div>
           ${s.postponedFrom?`<div style="padding:0 13px 8px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}`:''}
           ${s.done&&s.postponedFrom?`<div style="padding:0 13px 4px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
-          ${s.done&&s.gLat!=null?`<div class="sc-foot"><div class="sc-time">🕐 ${tStr(s.doneAt)}</div><div class="sc-gps">📍 ${s.gLat.toFixed(4)}, ${s.gLng.toFixed(4)} · ±${s.gAcc}m</div></div>`:s.done?`<div class="sc-foot"><div class="sc-time">🕐 ${tStr(s.doneAt)}</div><div class="sc-gps tx-dim">GPS no disponible</div></div>`:''}
+          ${s.done?`<div class="sc-foot"><div class="sc-time">🕐 ${tStr(s.doneAt)}</div></div>`:''}
           ${s.note||s.note2?`<div class="sc-note">${s.note?`📋 ${esc(s.note)}`:''}${s.note&&s.note2?'<br>':''}${s.note2?`📝 ${esc(s.note2)}`:''}</div>`:''}
         </div>`;
       }).join('');
@@ -1758,7 +1758,7 @@ const ET={
         </div>
         ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${t.cat!=='campo'?`<div style="font-size:13px;color:var(--tx2);font-weight:500">${esc(t.text)}</div>`:''}
+          ${t.cat!=='campo'?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.1;margin-bottom:${t.taller?'0':'3px'}">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="font-size:12px;color:var(--tx3);margin-top:2px">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
