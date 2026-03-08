@@ -1284,30 +1284,30 @@ const EF={
       const doneTasks=BT.all().filter(t=>t.st==='comp'&&t.doneBy===emp.id&&t.cat!=='campo'&&t.doneAt&&t.doneAt>=todayStart);
       const lines=[
         `📊 *Resumen jornada — ${emp.name}*`,
-        `📅 ${dateStr}`,
-        `⏱ Tiempo trabajado: *${h}h ${m}min*`,
+        `📅 ${dateStr}  |  ⏱ ${h}h ${m}min trabajados`,
         ``,
         `✅ *Paradas realizadas (${done.length}):*`,
+        ``,
         ...done.flatMap(s=>{
           const t=AT[s.type]||{icon:'📍'};
-          const header=`  ${t.icon} *${s.taller}*${s.doneAt?' · '+tStr(s.doneAt):''}`;
-          if(!s.note2)return[header];
-          const noteLines=s.note2.split('\n').map(l=>`    ${l}`);
-          return[header,...noteLines];
+          const header=`${t.icon} *${s.taller}*${s.doneAt?' · '+tStr(s.doneAt):''}`;
+          const noteLines=s.note2?s.note2.split('\n').filter(l=>l.trim()).map(l=>`  ${l}`):[];
+          return[header,...noteLines,``];
         })
       ];
       if(doneTasks.length>0){
-        lines.push('');
         lines.push(`📋 *Tareas completadas (${doneTasks.length}):*`);
+        lines.push('');
         doneTasks.forEach(t=>{
           const catIcon={almacen:'📦',oficina:'💼'}[t.cat]||'📌';
-          lines.push(`  ${catIcon} ${t.text}${t.doneAt?' · '+tStr(t.doneAt):''}`);
+          lines.push(`${catIcon} ${t.text}${t.doneAt?' · '+tStr(t.doneAt):''}`);
+          lines.push('');
         });
       }
       if(pend.length>0){
+        lines.push(`📅 *Pendientes mañana (${pend.length}):*`);
         lines.push('');
-        lines.push(`📅 *Pospuestas a mañana (${pend.length}):*`);
-        pend.forEach(s=>{const t=AT[s.type]||{icon:'📍'};lines.push(`  ${t.icon} ${s.taller}`);});
+        pend.forEach(s=>{const t=AT[s.type]||{icon:'📍'};lines.push(`${t.icon} ${s.taller}`);lines.push('');});
       }
       const msg=lines.join('\n');
       document.getElementById('wa-msg').value=msg;
@@ -2088,7 +2088,7 @@ const BR={
             <div style="flex:1;min-width:0">
               <div class="vname">${i+1}. ${esc(s.taller)}</div>
               <div class="vdet">${t.icon} ${t.label}${s.est?` · est. ${s.est}`:''}${s.note?` · ${esc(s.note)}`:''}</div>
-              ${s.done&&s.gLat!=null?`<div style="font-size:11px;color:var(--tx3);margin-top:3px">📍 ${s.gLat.toFixed(5)}, ${s.gLng.toFixed(5)} (±${s.gAcc}m) · 🕐 ${tStr(s.doneAt)}</div>`:''}
+              ${s.done?`<div style="font-size:11px;color:var(--tx3);margin-top:3px">${s.gLat!=null?`📍 ${s.gLat.toFixed(5)}, ${s.gLng.toFixed(5)} (±${s.gAcc}m) · `:''} 🕐 ${tStr(s.doneAt)}</div>`:''}
               ${s.done&&s.note2?`<div style="font-size:12px;color:var(--tx2);margin-top:3px">📝 ${esc(s.note2)}</div>`:''}
             </div>
             ${s.done?`<span class="vbadge vb-ok">✅ Realizado</span>`:`<span class="vbadge vb-no">⏳ Pendiente</span>`}
