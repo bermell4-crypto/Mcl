@@ -714,6 +714,7 @@ const EMPS=[
   {id:'ricardo',  name:'Ricardo',  role:'Comercial · Repartidor',type:'campo', av:'RI',color:'#8b5cf6', pin:'5274'},
   {id:'ximo',     name:'Ximo',     role:'Comercial · Repartidor',type:'campo', av:'XI',color:'#f02858', pin:'3815'},
   {id:'alejandro',name:'Alejandro',role:'Repartidor · Almacén',  type:'campo', av:'AL',color:'#ffb828', pin:'6049'},
+  {id:'andres',   name:'Andrés',   role:'Comercial · Repartidor',type:'campo', av:'AN',color:'#38bdf8', pin:'7391'},
 ];
 
 const AT={
@@ -1067,13 +1068,18 @@ const App={
 
   enter(eid){
     App.emp=getEmp(eid);if(!App.emp)return;
-    // Auto-migrate pending stops from previous days to today
     App._migratePendingStops(eid);
     BT.seen(eid);
     document.getElementById('e-hdr-name').textContent=App.emp.name;
     document.getElementById('e-hdr-role').textContent=App.emp.role;
     document.getElementById('e-hdr-st').innerHTML=UI.stBadge(TR.st(eid));
-    App.showV('ve');App.etab('fichar');App._updBadge();App._startInt();App._startLoc(eid);
+    // Show/hide tabs based on employee type
+    const isOfic=App.emp.type==='ofic';
+    ['ruta','equipo'].forEach(tab=>{
+      const btn=document.querySelector(`[data-et="${tab}"]`);
+      if(btn)btn.style.display=isOfic?'none':'';
+    });
+    App.showV('ve');App.etab(isOfic?'tareas':'fichar');App._updBadge();App._startInt();App._startLoc(eid);
   },
 
   _migratePendingStops(eid){
