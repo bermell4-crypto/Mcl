@@ -848,13 +848,17 @@ const RT={
 /* Shared Task List */
 const BT={
   all:()=>DB.all(K.BT).sort((a,b)=>b.ca-a.ca),
+  pending:()=>BT.all().filter(t=>t.st!=='comp'),
   forEmp:eid=>BT.all().filter(t=>t.eid===eid),
-  unseen:eid=>BT.all().filter(t=>!t.seen&&t.st!=='comp'&&t.eid===eid),
+  unseen:()=>BT.all().filter(t=>!t.seen&&t.st!=='comp'),
+  seenAll:()=>DB.map(K.BT,t=>({...t,seen:true})),
   seen:eid=>DB.map(K.BT,t=>t.eid===eid?{...t,seen:true}:t),
   setSt:(id,st)=>DB.map(K.BT,t=>t.id===id?{...t,st,doneAt:st==='comp'?nowMs():t.doneAt,doneBy:st==='comp'?App.emp?.id:t.doneBy}:t),
   add:(text,notes,pri,createdBy,cat,taller,actType)=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||''}),
   del:id=>DB.set(K.BT,DB.all(K.BT).filter(t=>t.id!==id)),
   update:(id,fields)=>DB.map(K.BT,t=>t.id===id?{...t,...fields}:t),
+  // Auto-delete tasks completed more than 24h ago
+  purgeOld:()=>{const cut=nowMs()-86400000;const before=DB.all(K.BT).length;DB.set(K.BT,DB.all(K.BT).filter(t=>!(t.st==='comp'&&t.doneAt&&t.doneAt<cut)));},
   assignToRoute:(id,eid,type,taller,notes,est)=>{
     DB.map(K.BT,t=>t.id===id?{...t,eid,routeEid:eid,routeType:type,routeTaller:taller,st:'en_proc'}:t);
     RT.addStop(eid,{taller,type,est:est||'',note:notes||'',_taskId:id});
@@ -1027,6 +1031,7 @@ const App={
     await FireSync.loadAll();
     FireSync.subscribe();
     refreshClients();
+    BT.purgeOld(); // Remove completed tasks older than 24h
 
     try{initDemo();}catch(e){console.warn('initDemo error:',e);}
 
@@ -1116,7 +1121,7 @@ const App={
     document.querySelectorAll('[data-et]').forEach(b=>b.classList.toggle('active',b.dataset.et===tab));
     document.querySelectorAll('#ve .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('t-'+tab).classList.add('active');
-    if(tab==='tareas'){ET._search='';document.getElementById('t-tareas').innerHTML='';}
+    if(tab==='tareas'){ET._search='';document.getElementById('t-tareas').innerHTML='';BT.seenAll();App._updBadge();}
     ({fichar:EF.render,ruta:ER.render,equipo:EQ.render,tareas:ET.render}[tab]||function(){})();
   },
 
@@ -1129,7 +1134,7 @@ const App={
   },
 
   _updBadge(){
-    const n=BT.all().length;
+    const n=BT.unseen().length;
     const el=document.getElementById('tt-btn');
     if(el)el.innerHTML=`📌 Tareas${n>0?` <span class="tab-badge">${n}</span>`:''}`;
   },
@@ -1671,9 +1676,10 @@ const EQ={
 const ET={
   _filter:null,
   _search:'',
+  _showComp:false,
+  _sort:'new', // 'new' | 'old' | 'az' | 'pri'
   render(){
     const emp=App.emp;if(!emp)return;
-    // Only build full shell if not already present
     const panel=document.getElementById('t-tareas');
     if(!document.getElementById('et-list')){
       panel.innerHTML=`
@@ -1681,10 +1687,15 @@ const ET={
         <div style="position:relative;margin-bottom:10px">
           <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px">
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px" id="et-filters"></div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;overflow-x:auto;padding-bottom:2px" id="et-filters"></div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;align-items:center">
+          <span style="font-size:11px;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;flex-shrink:0">Orden:</span>
+          <div id="et-sort" style="display:flex;gap:5px"></div>
+        </div>
         <div id="et-list"></div>`;
     }
     ET._renderFilters();
+    ET._renderSort();
     ET._renderList();
   },
   _renderFilters(){
@@ -1695,17 +1706,39 @@ const ET={
       `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`+
       `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`;
   },
+  _renderSort(){
+    const el=document.getElementById('et-sort');if(!el)return;
+    const opts=[
+      {k:'new',label:'🕐 Más reciente'},
+      {k:'old',label:'🕰 Más antiguo'},
+      {k:'az', label:'🔤 A–Z'},
+      {k:'pri',label:'🔥 Prioridad'},
+    ];
+    el.innerHTML=opts.map(o=>`<button class="btn btn-sm ${ET._sort===o.k?'btn-pri':'btn-gh'}" onclick="ET.setSort('${o.k}')">${o.label}</button>`).join('');
+  },
+  setSort(s){ET._sort=s;ET._renderSort();ET._renderList();},
   _renderList(){
     const emp=App.emp;if(!emp)return;
     const el=document.getElementById('et-list');if(!el)return;
     const q=ET._search.toLowerCase().trim();
-    const all=BT.all().filter(t=>{
-      // Campo tasks already in a route → hide (they live in Ruta tab)
+    const priOrder={alta:0,media:1,baja:2};
+    let all=BT.all().filter(t=>{
       if(t.cat==='campo'&&t.routeEid)return false;
+      if(!ET._showComp&&t.st==='comp')return false;
       if(ET._filter&&t.cat!==ET._filter)return false;
       if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
       return true;
     });
+    // Apply sort
+    if(ET._sort==='new') all.sort((a,b)=>b.ca-a.ca);
+    else if(ET._sort==='old') all.sort((a,b)=>a.ca-b.ca);
+    else if(ET._sort==='az') all.sort((a,b)=>(a.text||'').localeCompare(b.text||'','es'));
+    else if(ET._sort==='pri') all.sort((a,b)=>(priOrder[a.pri||'media']||1)-(priOrder[b.pri||'media']||1));
+    const compCount=BT.all().filter(t=>t.st==='comp'&&!(t.cat==='campo'&&t.routeEid)).length;
+    const toggleBtn=compCount>0?`<div style="text-align:center;margin:8px 0">
+      <button class="btn btn-gh btn-sm" onclick="ET._showComp=!ET._showComp;ET._renderList()">
+        ${ET._showComp?'🙈 Ocultar completadas':'👁 Ver completadas ('+compCount+')'}
+      </button></div>`:'';
     const th=t=>{
       const creator=getEmp(t.createdBy);
       const assignedEmp=t.routeEid?getEmp(t.routeEid):null;
@@ -1713,11 +1746,16 @@ const ET={
       const isMine=t.routeEid===emp.id;
       const cs=CAT_STYLE[t.cat]||CAT_STYLE.oficina;
       const at=AT[t.actType]||null;
+      const caDate=t.ca?new Date(t.ca):null;
+      const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1} ${String(caDate.getHours()).padStart(2,'0')}:${String(caDate.getMinutes()).padStart(2,'0')}`:'';
       return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
-          ${t.taller?`<span style="font-size:12px;font-weight:600;color:var(--tx2)">🏪 ${esc(t.taller)}</span>`:''}
-          ${at?`<span style="font-size:11px;color:var(--tx3)">${at.icon} ${at.label}</span>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
+            ${t.taller?`<span style="font-size:12px;font-weight:600;color:var(--tx2)">🏪 ${esc(t.taller)}</span>`:''}
+            ${at?`<span style="font-size:11px;color:var(--tx3)">${at.icon} ${at.label}</span>`:''}
+          </div>
+          ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
         <div style="flex:1;min-width:0;margin-bottom:7px">
           ${t.cat!=='campo'?`<div style="font-size:14px;color:var(--tx);font-weight:600">${esc(t.text)}</div>`:''}
@@ -1740,9 +1778,9 @@ const ET={
         </div>
       </div>`;
     };
-    el.innerHTML=all.length===0
-      ?`<div class="es"><div class="ei">${q?'🔍':'📌'}</div><div class="et">${q?'Sin resultados':'Sin tareas'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
-      :all.map(th).join('');
+    el.innerHTML=(all.length===0
+      ?`<div class="es"><div class="ei">${q?'🔍':'📌'}</div><div class="et">${q?'Sin resultados':'Sin tareas pendientes'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
+      :all.map(th).join(''))+toggleBtn;
   },
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
   search(val){ET._search=val;ET._renderList()},
