@@ -1888,7 +1888,7 @@ const ET={
         </div>
         ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.1;margin-bottom:${t.taller?'0':'3px'}">${esc(t.text)}</div>`:''}
+          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.4;margin-bottom:${t.taller?'0':'3px'};white-space:pre-wrap">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
@@ -2016,7 +2016,7 @@ const EMPP={
       `:''}
       ${otherItems.length>0?`
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 8px">DEL EQUIPO</div>
-        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
+        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
       `:''}
     </div>`;
   },
