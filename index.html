@@ -315,12 +315,14 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <button class="tab-btn" data-et="ruta" onclick="App.etab('ruta')">🗺 Mi Ruta</button>
     <button class="tab-btn" data-et="equipo" onclick="App.etab('equipo')">👥 Equipo</button>
     <button class="tab-btn" data-et="tareas" onclick="App.etab('tareas')" id="tt-btn">📌 Tareas</button>
+    <button class="tab-btn" data-et="mpp" onclick="App.etab('mpp')">📦 MPP</button>
   </nav>
   <div class="content">
     <div id="t-fichar" class="tab-panel active"></div>
     <div id="t-ruta" class="tab-panel"></div>
     <div id="t-equipo" class="tab-panel"></div>
     <div id="t-tareas" class="tab-panel"></div>
+    <div id="t-mpp" class="tab-panel"></div>
   </div>
 </div>
 
@@ -418,8 +420,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
         </div>
       </div>
       <div class="frow">
-        <div class="fg"><label class="fl">Hora estimada</label><input id="s-time" class="fc" type="time" autocomplete="off"></div>
-        <div class="fg"><label class="fl">Notas</label><input id="s-notes" class="fc" placeholder="Referencia, albarán..." autocomplete="off"></div>
+        <div class="fg" style="flex:1"><label class="fl">Notas</label><input id="s-notes" class="fc" placeholder="Referencia, albarán..." autocomplete="off"></div>
       </div>
     </div>
     <div class="mf">
@@ -505,9 +506,10 @@ tr:hover td{background:rgba(240,120,40,.025)}
         <label class="fl">Asignar a <span style="color:var(--er)">*</span></label>
         <select id="atr-emp" class="fc"></select>
       </div>
-      <div class="fg">
-        <label class="fl">Hora estimada</label>
-        <input id="atr-time" class="fc" type="time" autocomplete="off">
+      <div style="border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">
+        <label class="fl" style="color:var(--wn);margin-bottom:6px;display:block">📦 ¿Material pendiente de servir?</label>
+        <textarea id="atr-mpp" class="fc" rows="3" placeholder="Escribe el material que falta... (dejar en blanco si no hay)" style="resize:none"></textarea>
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">Si hay material, se creará una tarea de oficina con el detalle y la fecha.</div>
       </div>
     </div>
     <div class="mf">
@@ -552,13 +554,16 @@ tr:hover td{background:rgba(240,120,40,.025)}
         </div>
       </div>
 
-      <div class="fg" id="et-txt-section">
-        <label class="fl">Descripción <span style="color:var(--er)">*</span></label>
-        <input id="et-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off">
+      <div id="et-ofic-taller-section" style="display:none">
+        <div class="fg">
+          <label class="fl">Taller / Cliente <span style="color:var(--er)">*</span></label>
+          <input id="et-ofic-taller" class="fc" placeholder="Nombre del taller o cliente..." autocomplete="off">
+        </div>
       </div>
-      <div class="fg">
-        <label class="fl">Notas</label>
-        <textarea id="et-not" class="fc" rows="2" placeholder="Detalles, referencias, albarán..." autocomplete="off"></textarea>
+
+      <div class="fg" id="et-txt-section">
+        <label class="fl">Descripción y notas</label>
+        <textarea id="et-txt" class="fc" rows="3" placeholder="Qué hay que hacer, referencias, detalles..." autocomplete="off" style="resize:none"></textarea>
       </div>
       <div class="fg">
         <label class="fl">Prioridad</label>
@@ -699,7 +704,7 @@ const FireSync={
         if(ab)({dash:()=>BD.render(),rutas:()=>BR.render(),verif:()=>BV.render(),tareas:()=>BCom.render()}[ab.dataset.bt]||function(){})();
       }else if(ve&&!ve.classList.contains('hidden')){
         const ae=document.querySelector('[data-et].active');
-        if(ae)({fichar:()=>EF.render(),ruta:()=>ER.render(),equipo:()=>EQ.render(),tareas:()=>ET.render()}[ae.dataset.et]||function(){})();
+        if(ae)({fichar:()=>EF.render(),ruta:()=>ER.render(),equipo:()=>EQ.render(),tareas:()=>ET.render(),mpp:()=>EMPP.render()}[ae.dataset.et]||function(){})();
       }
     }catch(e){}
   }
@@ -767,7 +772,7 @@ const DB={
 /* Utils */
 let _u=0;
 const uid=()=>Date.now().toString(36)+(++_u).toString(36)+Math.random().toString(36).slice(2,5);
-const today=()=>new Date().toISOString().split('T')[0];
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const nowMs=()=>Date.now();
 const tStr=ms=>{if(!ms)return'--:--';const d=new Date(ms);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
 const mStr=m=>{if(!m||m<=0)return'0h 0m';return Math.floor(m/60)+'h '+Math.round(m%60)+'m'};
@@ -886,9 +891,7 @@ function initDemo(){
       trs.push({id:uid(),eid:emp.id,date,ci,ls:tsAt(date,13,rnd(0,30)),le:tsAt(date,14,rnd(0,45)),co:tsAt(date,rnd(17,19),rnd(0,50)),locI:HQ,locO:HQ});
     });
   });
-  // Today active employees
-  trs.push({id:uid(),eid:'victor',date:today(),ci:tsAt(today(),8,15),ls:null,le:null,co:null,locI:HQ,locO:null});
-  trs.push({id:uid(),eid:'alejandro',date:today(),ci:tsAt(today(),7,45),ls:tsAt(today(),13,5),le:tsAt(today(),14,10),co:null,locI:HQ,locO:null});
+  // Today active employees — sin fichaje de demo, cada uno ficha en real
 
   // Past routes
   EMPS.filter(e=>e.type==='campo').forEach(emp=>{
@@ -1135,7 +1138,7 @@ const App={
     document.querySelectorAll('#ve .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('t-'+tab).classList.add('active');
     if(tab==='tareas'){ET._search='';document.getElementById('t-tareas').innerHTML='';BT.seenAll();App._updBadge();}
-    ({fichar:EF.render,ruta:ER.render,equipo:EQ.render,tareas:ET.render}[tab]||function(){})();
+    ({fichar:EF.render,ruta:ER.render,equipo:EQ.render,tareas:ET.render,mpp:EMPP.render}[tab]||function(){})();
   },
 
   btab(tab){
@@ -1155,11 +1158,22 @@ const App={
   _startInt(){
     clearInterval(App._int);
     const tick=()=>{
-      const el=document.getElementById('live-clk');
-      if(el){const n=new Date();el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')}
+      const n=new Date();
+      const t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+      const el=document.getElementById('live-clk');if(el)el.textContent=t;
       const se=document.getElementById('e-hdr-st');if(se)se.innerHTML=UI.stBadge(TR.st(App.emp?.id));
+      // Actualizar horas trabajadas en tiempo real
+      if(App.emp){
+        const r=TR.today(App.emp.id);
+        const mins=TR.mins(r);
+        const p=pct(mins,GOAL);
+        const wEl=document.getElementById('live-worked');
+        if(wEl){wEl.textContent=mStr(mins);wEl.style.color=mins>=GOAL?'var(--ok)':'var(--acc)';}
+        const pgEl=document.getElementById('live-progress');if(pgEl)pgEl.style.width=p+'%';
+        const pctEl=document.getElementById('live-pct');if(pctEl)pctEl.textContent=p+'% del objetivo (8h)';
+      }
     };
-    tick();App._int=setInterval(tick,20000);
+    tick();App._int=setInterval(tick,30000);
   },
 
   _startLoc(eid){
@@ -1244,11 +1258,11 @@ const EF={
         <div class="clk-st">${UI.stBadge(st)}</div>
         <div class="cstats">
           <div class="cs"><div class="csv">${r?.ci?tStr(r.ci):'--:--'}</div><div class="csl">Entrada</div></div>
-          <div class="cs"><div class="csv" style="color:${mins>=GOAL?'var(--ok)':'var(--acc)'}">${mStr(mins)}</div><div class="csl">Trabajadas</div></div>
+          <div class="cs"><div class="csv" id="live-worked" style="color:${mins>=GOAL?'var(--ok)':'var(--acc)'}">${mStr(mins)}</div><div class="csl">Trabajadas</div></div>
           <div class="cs"><div class="csv">${lunchDisplay}</div><div class="csl">Pausa</div></div>
         </div>
-        <div class="pgw"><div class="pgb ${p>=100?'ot':p>=87?'nw':''}" style="width:${p}%"></div></div>
-        <div style="font-size:11px;color:var(--tx3);text-align:center;margin-bottom:13px">${p}% del objetivo (8h)</div>
+        <div class="pgw"><div class="pgb ${p>=100?'ot':p>=87?'nw':''}" id="live-progress" style="width:${p}%"></div></div>
+        <div id="live-pct" style="font-size:11px;color:var(--tx3);text-align:center;margin-bottom:13px">${p}% del objetivo (8h)</div>
         ${btns}
       </div>${rtHtml}`;
   },
@@ -1867,8 +1881,8 @@ const ET={
         </div>
         ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${t.cat!=='campo'?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.1;margin-bottom:${t.taller?'0':'3px'}">${esc(t.text)}</div>`:''}
-          ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">${esc(t.notes)}</div>`:''}
+          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.1;margin-bottom:${t.taller?'0':'3px'}">${esc(t.text)}</div>`:''}
+          ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
@@ -1896,12 +1910,35 @@ const ET={
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
   search(val){ET._search=val;ET._renderList()},
   toTaller(id){
-    UI.confirm('🏭 Pasar a Taller','¿Mover esta tarea de Oficina a Taller para que la sirvan?',()=>{
-      BT.update(id,{cat:'campo'});
+    const task=BT.all().find(t=>t.id===id);if(!task)return;
+    ET._toTallerId=id;
+    ET._toTallerAct=null;
+    document.getElementById('cf-title').textContent='🏭 Pasar a Taller';
+    document.getElementById('cf-body').innerHTML=`<p style="margin-bottom:14px;font-size:13px;color:var(--tx2)">Selecciona la actividad para <strong style="color:var(--tx)">${esc(task.taller||task.text)}</strong>:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-gh" id="tt-act-visita" onclick="ET._setAct('visita')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">🤝<span>Visita</span></button>
+        <button class="btn btn-gh" id="tt-act-lectura" onclick="ET._setAct('lectura')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">🎨<span>Lectura Color</span></button>
+        <button class="btn btn-gh" id="tt-act-entrega" onclick="ET._setAct('entrega')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">📦<span>Entrega</span></button>
+        <button class="btn btn-gh" id="tt-act-entrega_lectura" onclick="ET._setAct('entrega_lectura')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">📦🎨<span>Entrega+Lectura</span></button>
+      </div>`;
+    document.getElementById('cf-ok').textContent='✅ Pasar a Taller';
+    document.getElementById('cf-ok').onclick=()=>{
+      if(!ET._toTallerAct){UI.toast('Selecciona una actividad','wn');return}
+      BT.update(ET._toTallerId,{cat:'campo',actType:ET._toTallerAct});
+      UI.hm('cf-modal');
       ET._renderList();
       UI.toast('Tarea pasada a Taller 🏭','ok');
+    };
+    UI.sm('cf-modal');
+  },
+  _setAct(act){
+    ET._toTallerAct=act;
+    ['visita','lectura','entrega','entrega_lectura'].forEach(a=>{
+      const b=document.getElementById('tt-act-'+a);
+      if(b){b.classList.toggle('btn-pri',a===act);b.classList.toggle('btn-gh',a!==act);}
     });
   },
+  _toTallerId:null,_toTallerAct:null,
   complete(id){
     const task=BT.all().find(t=>t.id===id);
     const label=task?.cat==='almacen'?'almacén':'oficina';
@@ -1931,6 +1968,56 @@ const ET={
     if(App.emp&&task?.routeEid===App.emp.id)ER.render();
   })},
   edit(id){ETF.openEdit(id)},
+};
+
+/* ─── MPP (Material Pendiente Pedir) ─── */
+const EMPP={
+  _key:'mc4_mpp',
+  all:()=>{try{return JSON.parse(localStorage.getItem('mc4_mpp')||'[]')}catch(e){return[]}},
+  save(items){try{localStorage.setItem('mc4_mpp',JSON.stringify(items))}catch(e){}},
+  render(){
+    const el=document.getElementById('t-mpp');if(!el)return;
+    const emp=App.emp;if(!emp)return;
+    const allItems=EMPP.all();
+    const myItems=allItems.filter(i=>i.eid===emp.id);
+    // All items from all employees for visibility
+    const otherItems=allItems.filter(i=>i.eid!==emp.id);
+    el.innerHTML=`<div style="padding:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;color:var(--tx);margin-bottom:2px">📦 Material Pendiente Pedir</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:16px">Anota materiales que estés viendo bajos de stock</div>
+      <div class="card mb12">
+        <div class="card-hdr"><div class="card-t">➕ Nueva nota de material</div></div>
+        <div style="padding:0 14px 14px">
+          <textarea id="mpp-new-text" class="fc" rows="3" placeholder="Escribe aquí el material que ves bajo de stock..." style="resize:none;margin-bottom:8px"></textarea>
+          <button class="btn btn-ok btn-blk" onclick="EMPP.add()">➕ Añadir nota</button>
+        </div>
+      </div>
+      ${myItems.length===0&&otherItems.length===0?`<div class="es"><div class="ei">📦</div><div class="et">Sin notas de material</div><div class="ed">Añade materiales que veas con poca cantidad</div></div>`:''}
+      ${myItems.length>0?`
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">MIS NOTAS</div>
+        ${myItems.map(i=>{const d=new Date(i.ts);const dayMonth=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dayMonth} · ${tStr(i.ts)} · ${emp.name}</div></div>`;}).join('')}
+      `:''}
+      ${otherItems.length>0?`
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 8px">DEL EQUIPO</div>
+        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dayMonth=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dayMonth} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
+      `:''}
+    </div>`;
+  },
+  add(){
+    const text=(document.getElementById('mpp-new-text')?.value||'').trim();
+    if(!text){UI.toast('Escribe algo primero','wn');return;}
+    const items=EMPP.all();
+    items.push({id:uid(),eid:App.emp.id,text,ts:nowMs()});
+    EMPP.save(items);
+    UI.toast('Nota de material añadida 📦','ok');
+    EMPP.render();
+  },
+  del(id){
+    UI.confirm('Eliminar nota','¿Eliminar esta nota de material?',()=>{
+      EMPP.save(EMPP.all().filter(i=>i.id!==id));
+      EMPP.render();
+    });
+  }
 };
 
 /* ─── BOSS DASHBOARD ─── */
@@ -2411,7 +2498,7 @@ const ATR={
         </div>
         ${(task.taller||task.actType)?`<div style="font-size:11px;color:rgba(30,201,138,.85)">✅ Taller y actividad se añadirán automáticamente a la ruta</div>`:''}
       </div>`;
-    const timeEl=document.getElementById('atr-time');if(timeEl)timeEl.value='';
+    const mppEl=document.getElementById('atr-mpp');if(mppEl)mppEl.value='';
     const sel=document.getElementById('atr-emp');
     if(sel&&App.emp){
       sel.innerHTML=`<option value="${App.emp.id}">👤 Yo mismo (${App.emp.name})</option>`
@@ -2424,11 +2511,19 @@ const ATR={
     const task=BT.all().find(t=>t.id===ATR._tid);if(!task)return;
     const taller=task.taller||task.text;
     const type=task.actType||'visita';
-    BT.assignToRoute(ATR._tid,toEid,type,taller,task?.notes||'',gv('atr-time'));
+    BT.assignToRoute(ATR._tid,toEid,type,taller,task?.notes||'','');
+    // Material pendiente de servir
+    const mppMat=(document.getElementById('atr-mpp')?.value||'').trim();
+    if(mppMat){
+      const now=new Date();
+      const dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+      BT.add(`📦 Material pendiente: ${taller}`,`${mppMat}\n\n${dateStr}`, 'alta', App.emp?.id||'boss','oficina',taller,'');
+    }
     UI.hm('atr-modal');
     const toEmp=getEmp(toEid);
     const isSelf=toEid===App.emp?.id;
     UI.toast(isSelf?'Añadido a tu ruta 🗺':`Asignado a ${toEmp?.name} 🗺`,'ok');
+    if(mppMat)UI.toast('Tarea de material pendiente creada 📦','in',3500);
     ET.render();
   },
 };
@@ -2519,9 +2614,10 @@ const ETF={
     const modalTitle=document.querySelector('#etask-modal .mt');if(modalTitle)modalTitle.textContent='📝 Nueva Tarea';
     ['campo','almacen','oficina'].forEach(c=>{const b=document.getElementById('etc-'+c);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
     ['visita','lectura','entrega','entrega_lectura'].forEach(t=>{const b=document.getElementById('ett-'+t);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
-    ['et-txt','et-not','et-taller'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['et-txt','et-taller','et-ofic-taller'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value='media';
     const sec=document.getElementById('et-taller-section');if(sec)sec.style.display='none';
+    const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display='none';
     UI.sm('etask-modal');
     setTimeout(()=>document.getElementById('etc-campo')?.focus(),300);
   },
@@ -2531,6 +2627,8 @@ const ETF={
     ['visita','lectura','entrega','entrega_lectura'].forEach(t=>{const b=document.getElementById('ett-'+t);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
     const sec=document.getElementById('et-taller-section');
     if(sec)sec.style.display=c==='campo'?'block':'none';
+    const ofSec=document.getElementById('et-ofic-taller-section');
+    if(ofSec)ofSec.style.display=c==='oficina'?'block':'none';
     const txtSec=document.getElementById('et-txt-section');
     if(txtSec)txtSec.style.display=c==='campo'?'none':'block';
     if(c==='campo')ETF._sugg('');
@@ -2558,17 +2656,21 @@ const ETF={
       if(!taller){UI.toast('Escribe el nombre del taller','wn');return}
       if(!ETF._type){UI.toast('Selecciona la actividad a realizar','wn');return}
     }
-    const isCampo=ETF._cat==='campo';
-    let text='';
-    if(isCampo){
-      const t=ETF._cat==='campo'?(document.getElementById('et-taller')?.value?.trim()||''):'';
-      text=t; // use taller name as text for campo tasks
-    }else{
-      text=document.getElementById('et-txt')?.value?.trim();
-      if(!text){UI.toast('Escribe una descripción','wn');return}
+    if(ETF._cat==='oficina'){
+      const ofTaller=document.getElementById('et-ofic-taller')?.value?.trim();
+      if(!ofTaller){UI.toast('El nombre del taller es obligatorio','wn');return}
     }
-    const notes=gv('et-not'),pri=gv('et-pri')||'media';
-    const taller=isCampo?(document.getElementById('et-taller')?.value?.trim()||''):'';
+    const isCampo=ETF._cat==='campo';
+    let text='',taller='';
+    if(isCampo){
+      taller=document.getElementById('et-taller')?.value?.trim()||'';
+      text=taller;
+    }else{
+      text=document.getElementById('et-txt')?.value?.trim()||'';
+      if(!text&&ETF._cat!=='oficina'){UI.toast('Escribe una descripción','wn');return}
+      if(ETF._cat==='oficina')taller=document.getElementById('et-ofic-taller')?.value?.trim()||'';
+    }
+    const notes='',pri=gv('et-pri')||'media';
     if(ETF._editId){
       BT.update(ETF._editId,{text,notes,pri,cat:ETF._cat,taller,actType:ETF._type||''});
       ETF._editId=null;
@@ -2585,10 +2687,11 @@ const ETF={
     ['campo','almacen','oficina'].forEach(c=>{const b=document.getElementById('etc-'+c);if(b){b.classList.toggle('btn-pri',c===t.cat);b.classList.toggle('btn-gh',c!==t.cat)}});
     ['visita','lectura','entrega','entrega_lectura'].forEach(x=>{const b=document.getElementById('ett-'+x);if(b){b.classList.toggle('btn-pri',x===t.actType);b.classList.toggle('btn-gh',x!==t.actType)}});
     const sec=document.getElementById('et-taller-section');if(sec)sec.style.display=t.cat==='campo'?'block':'none';
+    const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display=t.cat==='oficina'?'block':'none';
     const txtSec=document.getElementById('et-txt-section');if(txtSec)txtSec.style.display=t.cat==='campo'?'none':'block';
     const tallerEl=document.getElementById('et-taller');if(tallerEl)tallerEl.value=t.taller||'';
+    const ofTallerEl=document.getElementById('et-ofic-taller');if(ofTallerEl)ofTallerEl.value=t.cat==='oficina'?t.taller||'':'';
     const txtEl=document.getElementById('et-txt');if(txtEl)txtEl.value=t.cat!=='campo'?t.text||'':'';
-    const notEl=document.getElementById('et-not');if(notEl)notEl.value=t.notes||'';
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value=t.pri||'media';
     document.querySelector('#etask-modal .mt').textContent='✏️ Editar Tarea';
     UI.sm('etask-modal');
