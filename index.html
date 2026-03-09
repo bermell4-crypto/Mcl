@@ -315,7 +315,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <button class="tab-btn" data-et="ruta" onclick="App.etab('ruta')">🗺 Mi Ruta</button>
     <button class="tab-btn" data-et="equipo" onclick="App.etab('equipo')">👥 Equipo</button>
     <button class="tab-btn" data-et="tareas" onclick="App.etab('tareas')" id="tt-btn">📌 Tareas</button>
-    <button class="tab-btn" data-et="mpp" onclick="App.etab('mpp')">📦 MPP</button>
+    <button class="tab-btn" data-et="mpp" id="mpp-btn" onclick="App.etab('mpp')">📦 MPP</button>
   </nav>
   <div class="content">
     <div id="t-fichar" class="tab-panel active"></div>
@@ -646,7 +646,7 @@ const _FB_CFG={
 firebase.initializeApp(_FB_CFG);
 const _fsdb=firebase.firestore();
 const FS_COL='mcl_data';
-const FS_KEYS=['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_cl','mc4_in','mc4_tmpl'];
+const FS_KEYS=['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_cl','mc4_in','mc4_tmpl','mc4_mpp'];
 
 const FireSync={
   _wt:{},_ready:false,
@@ -695,7 +695,7 @@ const FireSync={
   },
   _onRemote(key){
     // Refresh current visible tab when relevant data changes remotely
-    if(!['mc4_tr','mc4_rt','mc4_bt','mc4_lc'].includes(key))return;
+    if(!['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_mpp'].includes(key))return;
     try{
       const vb=document.getElementById('vb');
       const ve=document.getElementById('ve');
@@ -705,6 +705,7 @@ const FireSync={
       }else if(ve&&!ve.classList.contains('hidden')){
         const ae=document.querySelector('[data-et].active');
         if(ae)({fichar:()=>EF.render(),ruta:()=>ER.render(),equipo:()=>EQ.render(),tareas:()=>ET.render(),mpp:()=>EMPP.render()}[ae.dataset.et]||function(){})();
+        if(key==='mc4_mpp')App._updMppBadge();
       }
     }catch(e){}
   }
@@ -757,7 +758,7 @@ const LS={
     if(FS_KEYS.includes(k))FireSync.del(k);
   },
 };
-const K={TR:'mc4_tr',RT:'mc4_rt',BT:'mc4_bt',LC:'mc4_lc',IN:'mc4_in',TB:'mc4_tb',TMPL:'mc4_tmpl',CL:'mc4_cl'};
+const K={TR:'mc4_tr',RT:'mc4_rt',BT:'mc4_bt',LC:'mc4_lc',IN:'mc4_in',TB:'mc4_tb',TMPL:'mc4_tmpl',CL:'mc4_cl',MPP:'mc4_mpp'};
 const getClients=()=>{const saved=LS.g(K.CL);return(saved&&saved.length)?saved:[];}
 let CLIENTS=[];
 const refreshClients=()=>{CLIENTS=getClients()};
@@ -1153,6 +1154,12 @@ const App={
     const n=BT.unseen().length;
     const el=document.getElementById('tt-btn');
     if(el)el.innerHTML=`📌 Tareas${n>0?` <span class="tab-badge">${n}</span>`:''}`;
+    App._updMppBadge();
+  },
+  _updMppBadge(){
+    const el=document.getElementById('mpp-btn');if(!el)return;
+    const n=App.emp?EMPP.unseen().length:0;
+    el.innerHTML=`📦 MPP${n>0?` <span class="tab-badge" style="background:var(--er)">${n}</span>`:''}`;
   },
 
   _startInt(){
@@ -1972,15 +1979,25 @@ const ET={
 
 /* ─── MPP (Material Pendiente Pedir) ─── */
 const EMPP={
-  _key:'mc4_mpp',
-  all:()=>{try{return JSON.parse(localStorage.getItem('mc4_mpp')||'[]')}catch(e){return[]}},
-  save(items){try{localStorage.setItem('mc4_mpp',JSON.stringify(items))}catch(e){}},
+  all:()=>DB.all(K.MPP),
+  seenKey:()=>'mc4_mpp_seen_'+(App.emp?.id||''),
+  seenIds:()=>{try{return JSON.parse(localStorage.getItem(EMPP.seenKey())||'[]')}catch(e){return[]}},
+  markSeen(){
+    const ids=EMPP.all().map(i=>i.id);
+    localStorage.setItem(EMPP.seenKey(),JSON.stringify(ids));
+    App._updMppBadge();
+  },
+  unseen(){
+    const emp=App.emp;if(!emp)return[];
+    const seen=new Set(EMPP.seenIds());
+    return EMPP.all().filter(i=>i.eid!==emp.id&&!seen.has(i.id));
+  },
   render(){
     const el=document.getElementById('t-mpp');if(!el)return;
     const emp=App.emp;if(!emp)return;
+    EMPP.markSeen();
     const allItems=EMPP.all();
     const myItems=allItems.filter(i=>i.eid===emp.id);
-    // All items from all employees for visibility
     const otherItems=allItems.filter(i=>i.eid!==emp.id);
     el.innerHTML=`<div style="padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;color:var(--tx);margin-bottom:2px">📦 Material Pendiente Pedir</div>
@@ -1995,27 +2012,28 @@ const EMPP={
       ${myItems.length===0&&otherItems.length===0?`<div class="es"><div class="ei">📦</div><div class="et">Sin notas de material</div><div class="ed">Añade materiales que veas con poca cantidad</div></div>`:''}
       ${myItems.length>0?`
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">MIS NOTAS</div>
-        ${myItems.map(i=>{const d=new Date(i.ts);const dayMonth=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dayMonth} · ${tStr(i.ts)} · ${emp.name}</div></div>`;}).join('')}
+        ${myItems.map(i=>{const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · ${emp.name}</div></div>`;}).join('')}
       `:''}
       ${otherItems.length>0?`
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 8px">DEL EQUIPO</div>
-        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dayMonth=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dayMonth} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
+        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
       `:''}
     </div>`;
   },
   add(){
     const text=(document.getElementById('mpp-new-text')?.value||'').trim();
     if(!text){UI.toast('Escribe algo primero','wn');return;}
-    const items=EMPP.all();
-    items.push({id:uid(),eid:App.emp.id,text,ts:nowMs()});
-    EMPP.save(items);
+    DB.push(K.MPP,{id:uid(),eid:App.emp.id,text,ts:nowMs()});
+    // Mark own note as seen immediately
+    const seen=EMPP.seenIds();seen.push(EMPP.all().slice(-1)[0]?.id);
+    localStorage.setItem(EMPP.seenKey(),JSON.stringify(seen));
     UI.toast('Nota de material añadida 📦','ok');
-    EMPP.render();
+    EMPP.render();App._updMppBadge();
   },
   del(id){
     UI.confirm('Eliminar nota','¿Eliminar esta nota de material?',()=>{
-      EMPP.save(EMPP.all().filter(i=>i.id!==id));
-      EMPP.render();
+      DB.set(K.MPP,EMPP.all().filter(i=>i.id!==id));
+      EMPP.render();App._updMppBadge();
     });
   }
 };
