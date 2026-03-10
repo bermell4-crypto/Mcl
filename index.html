@@ -502,14 +502,25 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mh"><span class="mt">🗺 Pasar a Ruta</span><button class="mc" onclick="UI.hm('atr-modal')">✕</button></div>
     <div class="mb">
       <div id="atr-task-info" class="al al-in mb8" style="font-size:13px"></div>
+      <!-- Otros pedidos pendientes del mismo cliente -->
+      <div id="atr-pending-section" class="hidden" style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--wn);margin-bottom:8px">⚠️ Hay más pedidos pendientes de este cliente:</div>
+        <div id="atr-pending-list"></div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px">Los pedidos marcados se combinarán en una sola parada con las notas unificadas.</div>
+      </div>
       <div class="fg">
         <label class="fl">Asignar a <span style="color:var(--er)">*</span></label>
         <select id="atr-emp" class="fc"></select>
       </div>
       <div style="border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">
-        <label class="fl" style="color:var(--wn);margin-bottom:6px;display:block">📦 ¿Material pendiente de servir?</label>
-        <textarea id="atr-mpp" class="fc" rows="3" placeholder="Escribe el material que falta... (dejar en blanco si no hay)" style="resize:none"></textarea>
-        <div style="font-size:11px;color:var(--tx3);margin-top:4px">Si hay material, se creará una tarea de oficina con el detalle y la fecha.</div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
+          <input type="checkbox" id="atr-mpp-chk" style="width:20px;height:20px;accent-color:var(--wn);cursor:pointer" onchange="document.getElementById('atr-mpp-box').style.display=this.checked?'block':'none'">
+          <span style="font-size:14px;font-weight:700;color:var(--wn)">📦 ¿Quedó material pendiente de servir?</span>
+        </label>
+        <div id="atr-mpp-box" style="display:none;margin-top:10px">
+          <textarea id="atr-mpp" class="fc" rows="4" placeholder="Escribe el material que no se pudo entregar..." style="resize:none"></textarea>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Se creará una nueva tarea de Taller con este material pendiente.</div>
+        </div>
       </div>
     </div>
     <div class="mf">
@@ -552,6 +563,10 @@ tr:hover td{background:rgba(240,120,40,.025)}
             <button class="btn btn-gh" id="ett-entrega_lectura" onclick="ETF.type('entrega_lectura')" style="flex-direction:column;padding:10px 8px;gap:3px;font-size:12px">📦🎨<span>Entrega+Lectura</span></button>
           </div>
         </div>
+        <div class="fg">
+          <label class="fl">Pedido / Notas</label>
+          <textarea id="et-campo-txt" class="fc" rows="4" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:none"></textarea>
+        </div>
       </div>
 
       <div id="et-ofic-taller-section" style="display:none">
@@ -587,7 +602,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mh"><span class="mt" id="cf-title">Confirmar</span></div>
     <div class="mb" id="cf-body" style="font-size:14px;color:var(--tx2);line-height:1.55"></div>
     <div class="mf">
-      <button class="btn btn-gh f1" onclick="UI.hm('cf-modal')">Cancelar</button>
+      <button class="btn btn-gh f1" id="cf-cancel" onclick="UI.hm('cf-modal')">Cancelar</button>
       <button class="btn btn-er f1" id="cf-ok">Confirmar</button>
     </div>
   </div>
@@ -970,7 +985,10 @@ const UI={
   confirm(title,msg,cb){
     document.getElementById('cf-title').textContent=title;
     document.getElementById('cf-body').textContent=msg;
-    document.getElementById('cf-ok').onclick=()=>{UI.hm('cf-modal');cb()};
+    const okBtn=document.getElementById('cf-ok');
+    okBtn.style.display='';okBtn.textContent='Confirmar';
+    document.getElementById('cf-cancel').textContent='Cancelar';
+    okBtn.onclick=()=>{UI.hm('cf-modal');cb()};
     UI.sm('cf-modal');
   },
   stBadge(st){return{working:`<span class="badge b-working"><span class="sdot sdot-working"></span>Trabajando</span>`,lunch:`<span class="badge b-lunch"><span class="sdot sdot-lunch"></span>Comiendo</span>`,out:`<span class="badge b-out"><span class="sdot sdot-out"></span>Ha salido</span>`,none:`<span class="badge b-none"><span class="sdot sdot-none"></span>Sin fichar</span>`}[st]||''},
@@ -1379,10 +1397,10 @@ const ER={
             </div>
             ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ Hecho</span>`:''}
           </div>
-          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">📋 ${esc(s.note)}</div>`:''}
-          ${s._mppNote?`<div style="margin:0 13px 8px;padding:10px 12px;background:rgba(255,180,0,.08);border-radius:6px;border-left:3px solid var(--wn);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">⚠️ <strong style="color:#fff">Material pendiente:</strong>\n${esc(s._mppNote)}</div>`:''}
+          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px">📋 Pedido</div><div style="white-space:pre-wrap">${esc(s.note)}</div></div>`:''}
+          ${s._mppNote?`<div style="margin:0 13px 8px;padding:10px 12px;background:rgba(255,180,0,.08);border-radius:6px;border-left:3px solid var(--wn);font-size:13px;color:var(--tx);line-height:1.6"><div style="font-size:11px;color:var(--wn);font-weight:700;margin-bottom:4px">⚠️ Material pendiente</div><div style="white-space:pre-wrap">${esc(s._mppNote)}</div></div>`:''}
           ${s.note2?`<div style="margin:${s.note?'-4px':'0'} 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--ok);font-size:12px;color:var(--tx2);line-height:1.55;white-space:pre-wrap">📝 ${esc(s.note2)}</div>`:''}
-          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">📋 ${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
+          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.notes?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px">📋 Pedido</div><div style="white-space:pre-wrap">${esc(tk.notes)}</div></div>`:tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
           <div style="display:flex;align-items:center;gap:6px;padding:0 13px 11px;flex-wrap:nowrap">
             <div class="ob" style="flex-shrink:0">
               <button class="ob-btn" onclick="ER.mv('${s.id}',-1)" ${!canU?'disabled':''}>▲</button>
@@ -1657,7 +1675,7 @@ const EX={
     const body=document.getElementById('ex-body');
     body.innerHTML=`
       <div style="padding-bottom:4px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:var(--tx)">
             <input type="checkbox" id="ex-create-task" style="width:20px;height:20px;accent-color:var(--acc);cursor:pointer" onchange="EX._toggleTaskForm()">
             ➕ Crear tarea para <strong style="color:var(--acc)">${esc(tallerName)}</strong>
@@ -1673,7 +1691,7 @@ const EX={
           </div>
           <div class="fg" style="margin:0">
             <label class="fl">¿Qué hay que hacer? <span style="color:var(--er)">*</span></label>
-            <textarea id="ex-task-txt" class="fc" rows="4" placeholder="Ej: Enviar presupuesto, Pedido pintura, Llamar cliente..." autocomplete="off" style="resize:none"></textarea>
+            <textarea id="ex-task-txt" class="fc" rows="3" placeholder="Ej: Enviar presupuesto, Pedido pintura, Llamar cliente..." autocomplete="off" style="resize:none"></textarea>
           </div>
           <div class="fg" style="margin:0">
             <label class="fl">Prioridad</label>
@@ -1855,6 +1873,7 @@ const ET={
     const priOrder={alta:0,media:1,baja:2};
     let all=BT.all().filter(t=>{
       if(t.cat==='campo'&&t.routeEid)return false;
+      if(t._mpp&&t.routeEid)return false;
       if(!ET._showComp&&t.st==='comp')return false;
       if(ET._filter&&t.cat!==ET._filter)return false;
       if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
@@ -1897,7 +1916,7 @@ const ET={
           </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          ${t.cat==='campo'?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
+          ${t.cat==='campo'&&!t._mpp?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
             ${t.st!=='comp'
               ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
                   ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
@@ -1929,7 +1948,7 @@ const ET={
         <button class="btn btn-gh" id="tt-act-entrega" onclick="ET._setAct('entrega')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">📦<span>Entrega</span></button>
         <button class="btn btn-gh" id="tt-act-entrega_lectura" onclick="ET._setAct('entrega_lectura')" style="flex-direction:column;padding:10px 6px;gap:3px;font-size:12px">📦🎨<span>Entrega+Lectura</span></button>
       </div>`;
-    document.getElementById('cf-ok').textContent='✅ Pasar a Taller';
+    document.getElementById('cf-ok').textContent='✅ Confirmar';
     document.getElementById('cf-ok').onclick=()=>{
       if(!ET._toTallerAct){UI.toast('Selecciona una actividad','wn');return}
       BT.update(ET._toTallerId,{cat:'campo',actType:ET._toTallerAct});
@@ -1948,7 +1967,7 @@ const ET={
   },
   _toTallerId:null,_toTallerAct:null,
   complete(id){
-    const task=BT.all().find(t=>t.id===id);
+    const task=BT.all().find(t=>t.id===id);if(!task)return;
     const label=task?.cat==='almacen'?'almacén':'oficina';
     UI.confirm('✅ Completar tarea',`¿Marcar esta tarea de ${label} como completada?`,()=>{
       const doComplete=(lat,lng,acc)=>{
@@ -1981,6 +2000,8 @@ const ET={
 /* ─── MPP (Material Pendiente Pedir) ─── */
 const EMPP={
   all:()=>DB.all(K.MPP),
+  groups:()=>{try{return JSON.parse(localStorage.getItem('mc4_mpp_groups')||'[]')}catch(e){return[]}},
+  saveGroups(g){localStorage.setItem('mc4_mpp_groups',JSON.stringify(g))},
   seenKey:()=>'mc4_mpp_seen_'+(App.emp?.id||''),
   seenIds:()=>{try{return JSON.parse(localStorage.getItem(EMPP.seenKey())||'[]')}catch(e){return[]}},
   markSeen(){
@@ -1993,43 +2014,128 @@ const EMPP={
     const seen=new Set(EMPP.seenIds());
     return EMPP.all().filter(i=>i.eid!==emp.id&&!seen.has(i.id));
   },
+  _itemCard(i,showDel=true){
+    const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};
+    const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];
+    const isMe=App.emp?.id===i.eid;
+    const groups=EMPP.groups();
+    const moveOptions=groups.filter(g=>g.id!==i.groupId);
+    const showSelect=showDel&&(moveOptions.length>0||i.groupId);
+    const moveSelect=showSelect?`<select class="fc" style="font-size:11px;padding:3px 6px;height:28px;margin-bottom:0;flex-shrink:0;max-width:110px" onchange="if(this.value){EMPP._doMove('${i.id}',this.value);this.value=''}">
+      <option value="">📂 Mover...</option>
+      ${i.groupId?'<option value="__none__">↩ Sin grupo</option>':''}
+      ${moveOptions.map(g=>`<option value="${g.id}">${esc(g.name)}</option>`).join('')}
+    </select>`:'';
+    return`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:8px;border-left:3px solid ${e2.color};overflow:hidden">
+      <div style="padding:12px 14px 8px">
+        <div style="font-size:15px;font-weight:700;color:var(--tx);white-space:pre-wrap;line-height:1.5;word-break:break-word">${esc(i.text)}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${isMe?'Yo':e2.name}</span></div>
+      </div>
+      ${showDel?`<div style="display:flex;align-items:center;gap:8px;padding:0 14px 12px">
+        ${moveSelect}
+        <button class="btn btn-er btn-sm" style="flex-shrink:0;margin-left:auto" onclick="EMPP.del('${i.id}')">🗑 Eliminar</button>
+      </div>`:''}
+    </div>`;
+  },
   render(){
     const el=document.getElementById('t-mpp');if(!el)return;
     const emp=App.emp;if(!emp)return;
     EMPP.markSeen();
     const allItems=EMPP.all();
-    const myItems=allItems.filter(i=>i.eid===emp.id);
-    const otherItems=allItems.filter(i=>i.eid!==emp.id);
+    const groups=EMPP.groups();
+    // Items not assigned to any group
+    const ungrouped=allItems.filter(i=>!i.groupId);
+    const hasContent=allItems.length>0||groups.length>0;
     el.innerHTML=`<div style="padding:16px">
       <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;color:var(--tx);margin-bottom:2px">📦 Material Pendiente Pedir</div>
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:16px">Anota materiales que estés viendo bajos de stock</div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:16px">Anota materiales bajos de stock y agrúpalos por proveedor</div>
+
+      <!-- Añadir nota -->
       <div class="card mb12">
         <div class="card-hdr"><div class="card-t">➕ Nueva nota de material</div></div>
         <div style="padding:0 14px 14px">
-          <textarea id="mpp-new-text" class="fc" rows="3" placeholder="Escribe aquí el material que ves bajo de stock..." style="resize:none;margin-bottom:8px"></textarea>
+          <textarea id="mpp-new-text" class="fc" rows="3" placeholder="Escribe el material que falta..." style="resize:none;margin-bottom:8px"></textarea>
           <button class="btn btn-ok btn-blk" onclick="EMPP.add()">➕ Añadir nota</button>
         </div>
       </div>
-      ${myItems.length===0&&otherItems.length===0?`<div class="es"><div class="ei">📦</div><div class="et">Sin notas de material</div><div class="ed">Añade materiales que veas con poca cantidad</div></div>`:''}
-      ${myItems.length>0?`
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">MIS NOTAS</div>
-        ${myItems.map(i=>{const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · ${emp.name}</div></div>`;}).join('')}
-      `:''}
-      ${otherItems.length>0?`
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin:12px 0 8px">DEL EQUIPO</div>
-        ${otherItems.map(i=>{const e2=getEmp(i.eid)||{name:i.eid,color:'#888'};const d=new Date(i.ts);const dm=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return`<div class="card mb8"><div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px 8px"><div style="flex:1;font-size:16px;font-weight:800;text-transform:uppercase;color:var(--tx);white-space:pre-wrap;letter-spacing:.02em">${esc(i.text)}</div><button class="btn btn-er btn-sm" style="margin-left:10px;flex-shrink:0" onclick="EMPP.del('${i.id}')">🗑</button></div><div style="padding:0 14px 10px;font-size:11px;color:var(--tx3)">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${e2.name}</span></div></div>`;}).join('')}
+
+      <!-- Crear grupo proveedor -->
+      <div class="card mb16">
+        <div class="card-hdr"><div class="card-t">🏭 Nuevo grupo proveedor</div></div>
+        <div style="padding:0 14px 14px;display:flex;gap:8px">
+          <input id="mpp-grp-name" class="fc" placeholder="Nombre del proveedor..." style="flex:1;margin-bottom:0">
+          <button class="btn btn-sec" onclick="EMPP.addGroup()" style="flex-shrink:0">Crear</button>
+        </div>
+      </div>
+
+      ${!hasContent?`<div class="es"><div class="ei">📦</div><div class="et">Sin notas de material</div><div class="ed">Añade materiales que veas con poca cantidad</div></div>`:''}
+
+      <!-- Grupos por proveedor -->
+      ${groups.map(g=>{
+        const gItems=allItems.filter(i=>i.groupId===g.id);
+        return`<div class="card mb12" style="border:1px solid rgba(240,168,0,.3)">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--bdr)">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;text-transform:uppercase;color:var(--wn);letter-spacing:.04em">🏭 ${esc(g.name)}</div>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:11px;color:var(--tx3);padding:3px 8px;background:var(--bg3);border-radius:10px">${gItems.length} art.</span>
+              <button class="btn btn-er btn-sm" style="font-size:11px;padding:3px 8px" onclick="EMPP.delGroup('${g.id}')">🗑</button>
+            </div>
+          </div>
+          <div style="padding:10px 10px 6px">
+            ${gItems.length===0?`<div style="font-size:12px;color:var(--tx3);padding:6px 4px">Sin artículos aún — pulsa 📂 en una nota para añadirla aquí</div>`:''}
+            ${gItems.map(i=>EMPP._itemCard(i,true)).join('')}
+            <!-- Añadir nota directa al grupo -->
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <input id="mpp-grp-item-${g.id}" class="fc" placeholder="Añadir artículo a ${esc(g.name)}..." style="flex:1;font-size:13px;margin-bottom:0">
+              <button class="btn btn-sec btn-sm" onclick="EMPP.addToGroup('${g.id}')" style="flex-shrink:0">+</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+
+      <!-- Notas sin grupo -->
+      ${ungrouped.length>0?`
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px">SIN AGRUPAR</div>
+        ${ungrouped.map(i=>EMPP._itemCard(i,true)).join('')}
       `:''}
     </div>`;
   },
   add(){
     const text=(document.getElementById('mpp-new-text')?.value||'').trim();
     if(!text){UI.toast('Escribe algo primero','wn');return;}
-    DB.push(K.MPP,{id:uid(),eid:App.emp.id,text,ts:nowMs()});
-    // Mark own note as seen immediately
-    const seen=EMPP.seenIds();seen.push(EMPP.all().slice(-1)[0]?.id);
-    localStorage.setItem(EMPP.seenKey(),JSON.stringify(seen));
-    UI.toast('Nota de material añadida 📦','ok');
+    DB.push(K.MPP,{id:uid(),eid:App.emp.id,text,ts:nowMs(),groupId:null});
+    UI.toast('Nota añadida 📦','ok');
     EMPP.render();App._updMppBadge();
+  },
+  addGroup(){
+    const name=(document.getElementById('mpp-grp-name')?.value||'').trim();
+    if(!name){UI.toast('Escribe el nombre del proveedor','wn');return;}
+    const groups=EMPP.groups();
+    groups.push({id:uid(),name,ca:nowMs()});
+    EMPP.saveGroups(groups);
+    UI.toast(`Grupo "${name}" creado 🏭`,'ok');
+    EMPP.render();
+  },
+  addToGroup(gid){
+    const el=document.getElementById('mpp-grp-item-'+gid);
+    const text=(el?.value||'').trim();
+    if(!text){UI.toast('Escribe el material','wn');return;}
+    DB.push(K.MPP,{id:uid(),eid:App.emp.id,text,ts:nowMs(),groupId:gid});
+    UI.toast('Artículo añadido 📦','ok');
+    EMPP.render();App._updMppBadge();
+  },
+  _doMove(itemId,gid){
+    const newGid=gid==='__none__'?null:gid;
+    DB.map(K.MPP,i=>i.id===itemId?{...i,groupId:newGid}:i);
+    EMPP.render();UI.toast(newGid?'Movido al grupo ✅':'Quitado del grupo','ok');
+  },
+  delGroup(gid){
+    UI.confirm('Eliminar grupo','Se eliminará el grupo. Las notas dentro quedarán sin agrupar.',()=>{
+      DB.map(K.MPP,i=>i.groupId===gid?{...i,groupId:null}:i);
+      const groups=EMPP.groups().filter(g=>g.id!==gid);
+      EMPP.saveGroups(groups);
+      EMPP.render();
+    });
   },
   del(id){
     UI.confirm('Eliminar nota','¿Eliminar esta nota de material?',()=>{
@@ -2502,28 +2608,64 @@ const BMap={
 /* ─── ASSIGN TO ROUTE ─── */
 const ATR={
   _tid:null,
+  _pendingIds:[],
   open(tid){
-    ATR._tid=tid;
+    ATR._tid=tid;ATR._pendingIds=[];
     const task=BT.all().find(t=>t.id===tid);if(!task)return;
     const at=AT[task.actType]||{icon:'📍',label:task.actType||''};
     const catInfo={campo:'🏭 Taller',almacen:'📦 Almacén',oficina:'💼 Oficina'}[task.cat]||'';
     document.getElementById('atr-task-info').innerHTML=`
       <div>
-        <div style="font-weight:700;margin-bottom:6px">${esc(task.text)}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);margin-bottom:6px">${esc(task.taller||task.text)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
           ${catInfo?`<span class="badge ${CAT_STYLE[task.cat]?.badge||'b-wn'}" style="font-size:10px">${catInfo}</span>`:''}
-          ${task.taller?`<span class="badge b-in" style="font-size:10px">🏪 ${esc(task.taller)}</span>`:''}
           ${task.actType?`<span class="badge b-ok" style="font-size:10px">${at.icon} ${at.label}</span>`:''}
         </div>
+        ${task.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc);margin-bottom:6px">${esc(task.notes)}</div>`:''}
         ${(task.taller||task.actType)?`<div style="font-size:11px;color:rgba(30,201,138,.85)">✅ Taller y actividad se añadirán automáticamente a la ruta</div>`:''}
       </div>`;
+    // Buscar otros pedidos pendientes del mismo cliente
+    const taller=(task.taller||task.text||'').toLowerCase().trim();
+    if(taller){
+      const related=BT.all().filter(t=>
+        t.id!==tid &&
+        t.st==='pend' &&
+        !t.routeEid &&
+        !t._mpp &&
+        (t.cat==='oficina'||t.cat==='campo') &&
+        (t.taller||t.text||'').toLowerCase().trim()===taller
+      );
+      const sec=document.getElementById('atr-pending-section');
+      const lst=document.getElementById('atr-pending-list');
+      if(related.length>0&&sec&&lst){
+        lst.innerHTML=related.map(t=>`
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:8px;cursor:pointer;border:1px solid var(--bdr)">
+            <input type="checkbox" id="atr-chk-${t.id}" style="margin-top:3px;flex-shrink:0;width:20px;height:20px;accent-color:var(--acc)" onchange="ATR._togglePending('${t.id}',this.checked)">
+            <div style="flex:1;min-width:0">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;text-transform:uppercase;color:var(--wn);margin-bottom:5px">${esc(t.taller||t.text)}</div>
+              ${t.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc)">${esc(t.notes)}</div>`:''}
+              ${!t.notes&&t.text!==t.taller?`<div style="font-size:13px;color:var(--tx2);margin-top:3px">${esc(t.text)}</div>`:''}
+              <div style="font-size:11px;color:var(--tx3);margin-top:6px">${{campo:'🏭 Taller',almacen:'📦 Almacén',oficina:'💼 Oficina'}[t.cat]||''}</div>
+            </div>
+          </label>`).join('');
+        sec.classList.remove('hidden');
+      } else {
+        sec?.classList.add('hidden');
+      }
+    }
     const mppEl=document.getElementById('atr-mpp');if(mppEl)mppEl.value='';
+    const mppChk=document.getElementById('atr-mpp-chk');if(mppChk)mppChk.checked=false;
+    const mppBox=document.getElementById('atr-mpp-box');if(mppBox)mppBox.style.display='none';
     const sel=document.getElementById('atr-emp');
     if(sel&&App.emp){
       sel.innerHTML=`<option value="${App.emp.id}">👤 Yo mismo (${App.emp.name})</option>`
         +EMPS.filter(e=>e.id!==App.emp.id && e.type!=='ofic').map(e=>`<option value="${e.id}">${e.name} · ${e.role}</option>`).join('');
     }
     UI.sm('atr-modal');
+  },
+  _togglePending(tid,checked){
+    if(checked){if(!ATR._pendingIds.includes(tid))ATR._pendingIds.push(tid);}
+    else{ATR._pendingIds=ATR._pendingIds.filter(x=>x!==tid);}
   },
   save(){
     const toEid=gv('atr-emp');if(!toEid){UI.toast('Selecciona a quién','wn');return}
@@ -2537,14 +2679,27 @@ const ATR={
       const now=new Date();
       const dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
       mppTaskId=uid();
-      DB.push(K.BT,{id:mppTaskId,text:`📦 Material pendiente: ${taller}`,notes:`${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'oficina',taller,actType:''});
+      DB.push(K.BT,{id:mppTaskId,text:taller,notes:`📦 Material pendiente:\n${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'campo',taller,actType:'entrega'});
     }
-    BT.assignToRoute(ATR._tid,toEid,type,taller,task?.notes||'','',mppMat,mppTaskId);
+    // Combine notes from selected pending tasks
+    let combinedNotes=task.notes||'';
+    if(ATR._pendingIds.length>0){
+      const extras=ATR._pendingIds.map(pid=>BT.all().find(t=>t.id===pid)).filter(Boolean);
+      extras.forEach(t=>{
+        const part=[t.text,t.notes].filter(Boolean).join('\n');
+        if(part)combinedNotes+=(combinedNotes?'\n\n':'')+`— ${part}`;
+        // Mark as en_proc linked to same stop
+        DB.map(K.BT,x=>x.id===t.id?{...x,st:'en_proc',eid:toEid,routeEid:toEid}:x);
+      });
+    }
+    BT.assignToRoute(ATR._tid,toEid,type,taller,combinedNotes,'',mppMat,mppTaskId);
     UI.hm('atr-modal');
     const toEmp=getEmp(toEid);
     const isSelf=toEid===App.emp?.id;
-    UI.toast(isSelf?'Añadido a tu ruta 🗺':`Asignado a ${toEmp?.name} 🗺`,'ok');
+    const extra=ATR._pendingIds.length>0?` (+${ATR._pendingIds.length} pedido${ATR._pendingIds.length>1?'s':''} combinado${ATR._pendingIds.length>1?'s':''})`:''
+    UI.toast(isSelf?`Añadido a tu ruta 🗺${extra}`:`Asignado a ${toEmp?.name} 🗺${extra}`,'ok');
     if(mppMat)UI.toast('Tarea de material pendiente creada 📦','in',3500);
+    ATR._pendingIds=[];
     ET.render();
   },
 };
@@ -2635,13 +2790,13 @@ const ETF={
     const modalTitle=document.querySelector('#etask-modal .mt');if(modalTitle)modalTitle.textContent='📝 Nueva Tarea';
     ['campo','almacen','oficina'].forEach(c=>{const b=document.getElementById('etc-'+c);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
     ['visita','lectura','entrega','entrega_lectura'].forEach(t=>{const b=document.getElementById('ett-'+t);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
-    ['et-txt','et-taller','et-ofic-taller'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    ['et-txt','et-taller','et-ofic-taller','et-campo-txt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value='media';
     const sec=document.getElementById('et-taller-section');if(sec)sec.style.display='none';
     const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display='none';
     UI.sm('etask-modal');
-    // Pre-select oficina by default
-    setTimeout(()=>ETF.cat('oficina'),50);
+    // Pre-select campo (taller) by default
+    setTimeout(()=>ETF.cat('campo'),50);
   },
   cat(c){
     ETF._cat=c;ETF._type=null;
@@ -2683,16 +2838,17 @@ const ETF={
       if(!ofTaller){UI.toast('El nombre del taller es obligatorio','wn');return}
     }
     const isCampo=ETF._cat==='campo';
-    let text='',taller='';
+    let text='',taller='',notes='';
     if(isCampo){
       taller=document.getElementById('et-taller')?.value?.trim()||'';
       text=taller;
+      notes=document.getElementById('et-campo-txt')?.value?.trim()||'';
     }else{
       text=document.getElementById('et-txt')?.value?.trim()||'';
       if(!text&&ETF._cat!=='oficina'){UI.toast('Escribe una descripción','wn');return}
       if(ETF._cat==='oficina')taller=document.getElementById('et-ofic-taller')?.value?.trim()||'';
     }
-    const notes='',pri=gv('et-pri')||'media';
+    const pri=gv('et-pri')||'media';
     if(ETF._editId){
       BT.update(ETF._editId,{text,notes,pri,cat:ETF._cat,taller,actType:ETF._type||''});
       ETF._editId=null;
@@ -2712,6 +2868,7 @@ const ETF={
     const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display=t.cat==='oficina'?'block':'none';
     const txtSec=document.getElementById('et-txt-section');if(txtSec)txtSec.style.display=t.cat==='campo'?'none':'block';
     const tallerEl=document.getElementById('et-taller');if(tallerEl)tallerEl.value=t.taller||'';
+    const campotxtEl=document.getElementById('et-campo-txt');if(campotxtEl)campotxtEl.value=t.cat==='campo'?t.notes||'':'';
     const ofTallerEl=document.getElementById('et-ofic-taller');if(ofTallerEl)ofTallerEl.value=t.cat==='oficina'?t.taller||'':'';
     const txtEl=document.getElementById('et-txt');if(txtEl)txtEl.value=t.cat!=='campo'?t.text||'':'';
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value=t.pri||'media';
