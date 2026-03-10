@@ -866,9 +866,9 @@ const BT={
   update:(id,fields)=>DB.map(K.BT,t=>t.id===id?{...t,...fields}:t),
   // Auto-delete tasks completed more than 24h ago
   purgeOld:()=>{const cut=nowMs()-86400000;const before=DB.all(K.BT).length;DB.set(K.BT,DB.all(K.BT).filter(t=>!(t.st==='comp'&&t.doneAt&&t.doneAt<cut)));},
-  assignToRoute:(id,eid,type,taller,notes,est)=>{
+  assignToRoute:(id,eid,type,taller,notes,est,mppNote,mppTaskId)=>{
     DB.map(K.BT,t=>t.id===id?{...t,eid,routeEid:eid,routeType:type,routeTaller:taller,st:'en_proc'}:t);
-    RT.addStop(eid,{taller,type,est:est||'',note:notes||'',_taskId:id});
+    RT.addStop(eid,{taller,type,est:est||'',note:notes||'',_taskId:id,_mppNote:mppNote||'',_mppTaskId:mppTaskId||null});
   },
 };
 
@@ -1374,14 +1374,15 @@ const ER={
           <div class="sc-hdr">
             <div class="sc-num" style="background:${s.done?'var(--ok)':emp.color};flex-shrink:0">${s.done?'✓':origIdx+1}</div>
             <div class="sc-info" style="flex:1;min-width:0;overflow:hidden">
-              <div class="sc-name">${esc(s.taller)}</div>
+              <div class="sc-name" style="color:var(--wn)">${esc(s.taller)}</div>
               <div class="sc-type">${t.icon} ${t.label}${s.est?` · ${s.est}`:''}</div>
             </div>
             ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ Hecho</span>`:''}
           </div>
-          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">📋 ${esc(s.note)}</div>`:''}
-          ${s.note2?`<div style="margin:${s.note?'-4px':'0'} 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--ok);font-size:12px;color:var(--tx2);line-height:1.45">📝 ${esc(s.note2)}</div>`:''}
-          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.45">📋 ${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
+          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">📋 ${esc(s.note)}</div>`:''}
+          ${s._mppNote?`<div style="margin:0 13px 8px;padding:10px 12px;background:rgba(255,180,0,.08);border-radius:6px;border-left:3px solid var(--wn);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">⚠️ <strong style="color:#fff">Material pendiente:</strong>\n${esc(s._mppNote)}</div>`:''}
+          ${s.note2?`<div style="margin:${s.note?'-4px':'0'} 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--ok);font-size:12px;color:var(--tx2);line-height:1.55;white-space:pre-wrap">📝 ${esc(s.note2)}</div>`:''}
+          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">📋 ${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
           <div style="display:flex;align-items:center;gap:6px;padding:0 13px 11px;flex-wrap:nowrap">
             <div class="ob" style="flex-shrink:0">
               <button class="ob-btn" onclick="ER.mv('${s.id}',-1)" ${!canU?'disabled':''}>▲</button>
@@ -1886,9 +1887,9 @@ const ET={
           </div>
           ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
-        ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--tx);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
+        ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:${t.taller?'13px':'20px'};font-weight:${t.taller?'500':'900'};text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'var(--tx2)':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.4;margin-bottom:${t.taller?'0':'3px'};white-space:pre-wrap">${esc(t.text)}</div>`:''}
+          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'20px'};font-weight:${t.taller?'500':'900'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.5;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`:''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
@@ -2529,14 +2530,16 @@ const ATR={
     const task=BT.all().find(t=>t.id===ATR._tid);if(!task)return;
     const taller=task.taller||task.text;
     const type=task.actType||'visita';
-    BT.assignToRoute(ATR._tid,toEid,type,taller,task?.notes||'','');
     // Material pendiente de servir
     const mppMat=(document.getElementById('atr-mpp')?.value||'').trim();
+    let mppTaskId=null;
     if(mppMat){
       const now=new Date();
       const dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
-      BT.add(`📦 Material pendiente: ${taller}`,`${mppMat}\n\n${dateStr}`, 'alta', App.emp?.id||'boss','oficina',taller,'');
+      mppTaskId=uid();
+      DB.push(K.BT,{id:mppTaskId,text:`📦 Material pendiente: ${taller}`,notes:`${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'oficina',taller,actType:''});
     }
+    BT.assignToRoute(ATR._tid,toEid,type,taller,task?.notes||'','',mppMat,mppTaskId);
     UI.hm('atr-modal');
     const toEmp=getEmp(toEid);
     const isSelf=toEid===App.emp?.id;
@@ -2637,7 +2640,8 @@ const ETF={
     const sec=document.getElementById('et-taller-section');if(sec)sec.style.display='none';
     const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display='none';
     UI.sm('etask-modal');
-    setTimeout(()=>document.getElementById('etc-campo')?.focus(),300);
+    // Pre-select oficina by default
+    setTimeout(()=>ETF.cat('oficina'),50);
   },
   cat(c){
     ETF._cat=c;ETF._type=null;
