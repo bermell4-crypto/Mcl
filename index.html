@@ -512,6 +512,25 @@ tr:hover td{background:rgba(240,120,40,.025)}
         <label class="fl">Asignar a <span style="color:var(--er)">*</span></label>
         <select id="atr-emp" class="fc"></select>
       </div>
+      <!-- Tipo de documento (Albarán/Factura) -->
+      <div style="border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">
+        <div style="font-size:12px;font-weight:700;color:#dc50b4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🧾 Documento a generar</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;cursor:pointer;border:1px solid var(--bdr)">
+            <input type="radio" name="atr-doc" value="albaran" id="atr-doc-alb" style="width:18px;height:18px;accent-color:#dc50b4;cursor:pointer">
+            <div><div style="font-size:14px;font-weight:700;color:var(--tx)">📄 Albarán</div><div style="font-size:11px;color:var(--tx3)">Solo albarán, sin factura</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;cursor:pointer;border:1px solid var(--bdr)">
+            <input type="radio" name="atr-doc" value="albfac" id="atr-doc-albfac" style="width:18px;height:18px;accent-color:#dc50b4;cursor:pointer">
+            <div><div style="font-size:14px;font-weight:700;color:var(--tx)">📄🧾 Albarán + Factura</div><div style="font-size:11px;color:var(--tx3)">Genera albarán y factura</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;cursor:pointer;border:1px solid var(--bdr)">
+            <input type="radio" name="atr-doc" value="contado" id="atr-doc-cnt" style="width:18px;height:18px;accent-color:#dc50b4;cursor:pointer">
+            <div><div style="font-size:14px;font-weight:700;color:var(--tx)">💵 Contado</div><div style="font-size:11px;color:var(--tx3)">Pago en efectivo al momento</div></div>
+          </label>
+        </div>
+      </div>
+      <!-- Material pendiente -->
       <div style="border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
           <input type="checkbox" id="atr-mpp-chk" style="width:20px;height:20px;accent-color:var(--wn);cursor:pointer" onchange="document.getElementById('atr-mpp-box').style.display=this.checked?'block':'none'">
@@ -603,7 +622,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mb" id="cf-body" style="font-size:14px;color:var(--tx2);line-height:1.55"></div>
     <div class="mf">
       <button class="btn btn-gh f1" id="cf-cancel" onclick="UI.hm('cf-modal')">Cancelar</button>
-      <button class="btn btn-er f1" id="cf-ok">Confirmar</button>
+      <button class="btn btn-ok f1" id="cf-ok">Confirmar</button>
     </div>
   </div>
 </div>
@@ -731,6 +750,7 @@ const HQ={lat:39.4437,lng:-0.4120};
 
 const EMPS=[
   {id:'carla',    name:'Carla',    role:'Secretaria',            type:'ofic',  av:'CA',color:'#f07828', pin:'4827'},
+  {id:'patricia', name:'Patricia', role:'Secretaria',            type:'ofic',  av:'PA',color:'#d946ef', pin:'3562'},
   {id:'victor',   name:'Víctor',   role:'Comercial',             type:'campo', av:'VI',color:'#1ec98a', pin:'9163'},
   {id:'ricardo',  name:'Ricardo',  role:'Comercial · Repartidor',type:'campo', av:'RI',color:'#8b5cf6', pin:'5274'},
   {id:'ximo',     name:'Ximo',     role:'Comercial · Repartidor',type:'campo', av:'XI',color:'#f02858', pin:'3815'},
@@ -749,6 +769,7 @@ const CAT_STYLE={
   campo:   {icon:'🏭', label:'Taller',   badge:'b-in',  bg:'rgba(40,128,240,.12)',  border:'rgba(40,128,240,.35)'},
   almacen: {icon:'📦', label:'Almacén',  badge:'b-wn',  bg:'rgba(255,184,40,.12)',  border:'rgba(255,184,40,.35)'},
   oficina: {icon:'💼', label:'Oficina',  badge:'b-ok',  bg:'rgba(30,201,138,.12)',  border:'rgba(30,201,138,.35)'},
+  albfac:  {icon:"🧾", label:"Albaranes/Facturas", badge:"b-er",  bg:"rgba(220,80,180,.12)",  border:"rgba(220,80,180,.45)"},
 };
 
 // CLIENTS defined after LS and K below
@@ -1851,7 +1872,8 @@ const ET={
     const el=document.getElementById('et-filters');if(!el)return;
     el.innerHTML=
       `<button class="btn btn-sm ${ET._filter===null?'btn-pri':'btn-gh'}" onclick="ET.filter(null)">Todas</button>`+
-      `<button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Sin asignar</button>`+
+      `<button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Pedidos</button>`+
+      `<button class="btn btn-sm ${ET._filter==='albfac'?'btn-pri':'btn-gh'}" onclick="ET.filter('albfac')">🧾 Alb. y Fact.</button>`+
       `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`+
       `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`;
   },
@@ -1906,10 +1928,23 @@ const ET={
           </div>
           ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
-        ${t.taller?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;margin-bottom:3px;line-height:1.1">${esc(t.taller)}</div>`:''}
+        ${t.taller?`<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:3px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;line-height:1.1">${esc(t.taller)}</div>
+          ${t.docTipo?`<span style="font-size:13px;font-weight:700;color:#dc50b4;white-space:nowrap">${{albaran:'📄 Albarán',albfac:'📄🧾 Alb + Fra',contado:'💵 Contado'}[t.docTipo]||t.docTipo}</span>`:''}
+        </div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
           ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'20px'};font-weight:${t.taller?'500':'900'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.5;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap">${esc(t.text)}</div>`:''}
-          ${t.notes?`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`:''}
+          ${t.notes?(()=>{
+            if(t.cat==='albfac'){
+              const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+              const si=t.notes.indexOf(PEND_SEP);
+              const pedPart=si>=0?t.notes.slice(0,si).trim():t.notes.trim();
+              const pndPart=si>=0?t.notes.slice(si+PEND_SEP.length).trim():'';
+              return`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(pedPart)}</div>`
+                +(pndPart?`<div style="margin-top:6px;padding:8px 10px;background:rgba(220,80,60,.10);border-radius:6px;border-left:3px solid var(--er);font-size:13px;color:var(--tx);line-height:1.6"><div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:4px">⚠️ PENDIENTE — NO incluir en documento</div><div style="white-space:pre-wrap">${esc(pndPart)}</div></div>`:'');
+            }
+            return`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`;
+          })():''}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
@@ -1920,9 +1955,9 @@ const ET={
             ${t.st!=='comp'
               ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
                   ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
-                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ Hecho</button>
+                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ ${t.cat==='albfac'?'Facturado':'Hecho'}</button>
                 </div>`
-              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ Hecho${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
+              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ ${t.cat==='albfac'?'Facturado':'Hecho'}${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
             }
           `}
           <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
@@ -2656,6 +2691,8 @@ const ATR={
     const mppEl=document.getElementById('atr-mpp');if(mppEl)mppEl.value='';
     const mppChk=document.getElementById('atr-mpp-chk');if(mppChk)mppChk.checked=false;
     const mppBox=document.getElementById('atr-mpp-box');if(mppBox)mppBox.style.display='none';
+    document.querySelectorAll('input[name="atr-doc"]').forEach(r=>r.checked=false);
+    const albDefaultRadio=document.getElementById('atr-doc-alb');if(albDefaultRadio)albDefaultRadio.checked=true;
     const sel=document.getElementById('atr-emp');
     if(sel&&App.emp){
       sel.innerHTML=`<option value="${App.emp.id}">👤 Yo mismo (${App.emp.name})</option>`
@@ -2691,6 +2728,47 @@ const ATR={
         // Mark as en_proc linked to same stop
         DB.map(K.BT,x=>x.id===t.id?{...x,st:'en_proc',eid:toEid,routeEid:toEid}:x);
       });
+    }
+    // Tipo de documento: crear/agrupar tarea albfac
+    const docVal=document.querySelector('input[name="atr-doc"]:checked')?.value||null;
+    if(docVal){
+      const docLabel={albaran:'📄 Albarán',albfac:'📄🧾 Albarán + Factura',contado:'💵 Contado'}[docVal]||docVal;
+      const now2=new Date();
+      const dateStr2=`${now2.getDate()}/${now2.getMonth()+1}/${now2.getFullYear()}`;
+      // Build this pedido's material block (without pending)
+      const pedidoBlock=`${dateStr2} — ${docLabel}\n${combinedNotes||''}`.trim();
+      const existing=BT.all().find(t=>
+        t.cat==='albfac'&&t.st!=='comp'&&
+        (t.taller||'').toLowerCase()===taller.toLowerCase()&&
+        t.docTipo===docVal
+      );
+      if(existing){
+        // Split existing notes into pedidos part and pending part
+        const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+        const existingNotes=existing.notes||'';
+        const splitIdx=existingNotes.indexOf(PEND_SEP);
+        const existingPedidos=splitIdx>=0?existingNotes.slice(0,splitIdx).trim():existingNotes.trim();
+        // Collect all pending items: from existing + new
+        const pendingParts=[];
+        if(splitIdx>=0)pendingParts.push(existingNotes.slice(splitIdx+PEND_SEP.length).trim());
+        if(mppMat)pendingParts.push(mppMat.trim());
+        // Rebuild: all pedidos first, then all pending at bottom
+        let newNotes=existingPedidos+'\n\n──────────────\n'+pedidoBlock;
+        if(pendingParts.length>0)newNotes+=PEND_SEP+'\n'+pendingParts.join('\n──────\n');
+        BT.update(existing.id,{notes:newNotes,updAt:nowMs()});
+        UI.toast(`Añadido al documento existente de ${taller} ✅`,'ok',3000);
+      }else{
+        // New albfac task: pedido material, then pending at bottom if any
+        const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+        let entryNotes=pedidoBlock;
+        if(mppMat)entryNotes+=PEND_SEP+'\n'+mppMat.trim();
+        DB.push(K.BT,{
+          id:uid(),text:taller,notes:entryNotes,pri:'alta',st:'pend',seen:false,
+          ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,
+          cat:'albfac',taller,actType:'',docTipo:docVal
+        });
+        UI.toast(`Tarea de ${docLabel} creada para oficina 🧾`,'in',3000);
+      }
     }
     BT.assignToRoute(ATR._tid,toEid,type,taller,combinedNotes,'',mppMat,mppTaskId);
     UI.hm('atr-modal');
