@@ -52,6 +52,17 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .tab-btn.active{color:var(--acc);border-bottom-color:var(--acc)}
 .tab-badge{background:var(--er);color:#fff;border-radius:100px;padding:1px 5px;font-size:9px;font-weight:900;min-width:14px;text-align:center}
 .tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ─── Detail Panel (full screen slide-in) ─── */
+.detail-panel{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.detail-panel.open{transform:translateX(0);pointer-events:all}
+.dp-header{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px;flex-shrink:0;position:sticky;top:0;z-index:10}
+.dp-back{width:36px;height:36px;border-radius:8px;background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:all .12s}
+.dp-back:hover{background:var(--bg4)}
+.dp-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-sub{font-size:11px;color:var(--tx3)}
+.dp-body{flex:1;overflow-y:auto;padding:16px;max-width:860px;margin:0 auto;width:100%;padding-bottom:100px}
+.dp-footer{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;background:linear-gradient(0deg,var(--bg) 60%,transparent);display:flex;gap:8px}
 .boss-nav{top:88px!important}
 
 /* Buttons */
@@ -312,9 +323,9 @@ tr:hover td{background:rgba(240,120,40,.025)}
   </header>
   <nav class="tab-nav">
     <button class="tab-btn active" data-et="fichar" onclick="App.etab('fichar')">⏱ Fichar</button>
+    <button class="tab-btn" data-et="tareas" onclick="App.etab('tareas')" id="tt-btn">📌 Tareas</button>
     <button class="tab-btn" data-et="ruta" onclick="App.etab('ruta')">🗺 Mi Ruta</button>
     <button class="tab-btn" data-et="equipo" onclick="App.etab('equipo')">👥 Equipo</button>
-    <button class="tab-btn" data-et="tareas" onclick="App.etab('tareas')" id="tt-btn">📌 Tareas</button>
     <button class="tab-btn" data-et="mpp" id="mpp-btn" onclick="App.etab('mpp')">📦 MPP</button>
   </nav>
   <div class="content">
@@ -324,6 +335,20 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div id="t-tareas" class="tab-panel"></div>
     <div id="t-mpp" class="tab-panel"></div>
   </div>
+</div>
+
+<!-- DETAIL PANEL: STOP / TASK -->
+<div id="detail-panel" class="detail-panel">
+  <div class="dp-header">
+    <button class="dp-back" onclick="DP.close()">‹</button>
+    <div style="flex:1;min-width:0">
+      <div class="dp-title" id="dp-title">—</div>
+      <div class="dp-sub" id="dp-sub"></div>
+    </div>
+    <div id="dp-header-actions" style="display:flex;gap:6px"></div>
+  </div>
+  <div class="dp-body" id="dp-body"></div>
+  <div class="dp-footer" id="dp-footer"></div>
 </div>
 
 <!-- BOSS VIEW -->
@@ -443,6 +468,56 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div class="mf">
       <button class="btn btn-gh f1" onclick="UI.hm('exec-modal')">Cancelar</button>
       <button class="btn btn-ok f1" onclick="EX.confirm()">✅ HECHO</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: STOP DETAIL -->
+<div id="stop-detail-modal" class="mo hidden">
+  <div class="md" style="max-width:440px">
+    <div class="mh">
+      <div>
+        <div class="mt" id="sdm-title">Detalle de parada</div>
+        <div style="font-size:12px;color:var(--tx3);margin-top:2px" id="sdm-sub"></div>
+      </div>
+      <button class="mc" onclick="UI.hm('stop-detail-modal')">✕</button>
+    </div>
+    <div class="mb" style="display:flex;flex-direction:column;gap:10px">
+      <div id="sdm-body"></div>
+      <div id="sdm-edit-section" style="display:none">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">Pedido / Notas</label>
+          <textarea id="sdm-notes-edit" class="fc" rows="5" style="resize:none" autocomplete="off"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mf" style="flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gh f1" id="sdm-edit-btn" onclick="SDM.toggleEdit()">✏️ Editar notas</button>
+        <button class="btn btn-ok f1" onclick="EX.open(SDM._sid);UI.hm('stop-detail-modal')">✅ HECHO</button>
+      </div>
+      <button class="btn btn-gh" style="width:100%;font-size:12px;color:var(--tx3)" onclick="UI.hm('stop-detail-modal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INICIAR RUTA -->
+<div id="start-route-modal" class="mo hidden">
+  <div class="md" style="max-width:360px">
+    <div class="mh"><span class="mt">🚐 Iniciar Ruta</span><button class="mc" onclick="UI.hm('start-route-modal')">✕</button></div>
+    <div class="mb" style="text-align:center;padding:10px 0">
+      <div id="srm-body" style="font-size:14px;color:var(--tx2);line-height:1.6;margin-bottom:16px"></div>
+      <div id="srm-color-reader" class="hidden" style="background:rgba(255,184,40,.1);border:1px solid rgba(255,184,40,.35);border-radius:var(--r);padding:14px;margin-bottom:16px;text-align:left">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:var(--wn);margin-bottom:6px">🎨 ¿Llevas el lector de colores?</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Tu ruta incluye paradas con lectura de color. Asegúrate de llevar el lector.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-wn f1" onclick="SRM.confirmStart(true)">✅ Sí, lo llevo</button>
+          <button class="btn btn-gh f1" onclick="SRM.confirmStart(false)">🚫 Sin lector</button>
+        </div>
+      </div>
+      <div id="srm-no-color" class="hidden">
+        <button class="btn btn-ok btn-blk" onclick="SRM.confirmStart(false)">🚐 ¡Iniciar ruta!</button>
+      </div>
     </div>
   </div>
 </div>
@@ -795,6 +870,30 @@ const LS={
   },
 };
 const K={TR:'mc4_tr',RT:'mc4_rt',BT:'mc4_bt',LC:'mc4_lc',IN:'mc4_in',TB:'mc4_tb',TMPL:'mc4_tmpl',CL:'mc4_cl',MPP:'mc4_mpp'};
+/* ─── PREFERENCIAS DE USUARIO ─── */
+const PREF={
+  _k:eid=>'mc4_pref_'+eid,
+  get(eid){return LS.g(PREF._k(eid))||{}},
+  set(eid,key,val){const p=PREF.get(eid);p[key]=val;localStorage.setItem(PREF._k(eid),JSON.stringify(p));},
+  // compactMode: true=solo info básica, false=ver pedidos completos
+  isCompact(eid){const v=PREF.get(eid).compactMode;return v===undefined?true:v;},
+  toggleCompact(eid){PREF.set(eid,'compactMode',!PREF.isCompact(eid));},
+};
+/* ─── MPP HELPERS ─── */
+// Detecta si una tarea es de material pendiente y separa las partes
+const MPP={
+  isMpp:t=>t&&t.cat==='campo'&&t.actType==='entrega'&&(t.notes||'').startsWith('Material pendiente:'),
+  // Devuelve {pedido, mpp} para notas con separador ⚠️ PENDIENTE
+  split(notes){
+    if(!notes)return{pedido:'',mpp:''};
+    const SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+    const idx=notes.indexOf(SEP);
+    if(idx>=0)return{pedido:notes.slice(0,idx).trim(),mpp:notes.slice(idx+SEP.length).trim()};
+    // Tareas MPP puras: notes empieza con "Material pendiente:"
+    if(notes.startsWith('Material pendiente:'))return{pedido:'',mpp:notes.replace(/^Material pendiente:\n?/,'').replace(/\n\n\d+\/\d+\/\d+$/,'').trim()};
+    return{pedido:notes,mpp:''};
+  },
+};
 const getClients=()=>{const saved=LS.g(K.CL);return(saved&&saved.length)?saved:[];}
 let CLIENTS=[];
 const refreshClients=()=>{CLIENTS=getClients()};
@@ -854,7 +953,31 @@ const RT={
   get:(eid,date)=>DB.find(K.RT,r=>r.eid===eid&&r.date===date)||{eid,date,stops:[],trail:[]},
   save:(eid,date,route)=>{const a=DB.all(K.RT).filter(r=>!(r.eid===eid&&r.date===date));a.push({...route,eid,date});DB.set(K.RT,a)},
   today:eid=>RT.get(eid,today()),
-  addStop(eid,s){const r=RT.today(eid);r.stops.push({...s,id:uid(),done:false,doneAt:null,gLat:null,gLng:null,gAcc:null,note2:''});RT.save(eid,today(),r)},
+  addStop(eid,s){
+    const r=RT.today(eid);
+    // Fusionar si ya existe una parada pendiente del mismo taller
+    const exIdx=r.stops.findIndex(x=>!x.done&&x.taller===s.taller);
+    if(exIdx>=0){
+      const ex=r.stops[exIdx];
+      const n1=(ex.note||'').trim();
+      const n2=(s.note||'').trim();
+      let merged;
+      if(/^\(\d+\)/.test(n1)){
+        const matches=n1.match(/\(\d+\)/g);
+        const next=(matches?matches.length:1)+1;
+        merged=n1+(n2?'\n('+next+') '+n2:'');
+      }else{
+        merged=(n1?'(1) '+n1:'(1) —')+(n2?'\n(2) '+n2:'\n(2) —');
+      }
+      const ids=ex._taskIds?[...ex._taskIds]:(ex._taskId?[ex._taskId]:[]);
+      if(s._taskId&&!ids.includes(s._taskId))ids.push(s._taskId);
+      r.stops[exIdx]={...ex,note:merged,_taskIds:ids,_taskId:ids[0]||ex._taskId};
+      RT.save(eid,today(),r);
+      return;
+    }
+    r.stops.push({...s,id:uid(),done:false,doneAt:null,gLat:null,gLng:null,gAcc:null,note2:''});
+    RT.save(eid,today(),r);
+  },
   move(eid,idx,dir){const r=RT.today(eid);const ni=idx+dir;if(ni<0||ni>=r.stops.length)return;[r.stops[idx],r.stops[ni]]=[r.stops[ni],r.stops[idx]];RT.save(eid,today(),r)},
   del(eid,sid){const r=RT.today(eid);r.stops=r.stops.filter(s=>s.id!==sid);RT.save(eid,today(),r)},
   exec(eid,sid,lat,lng,acc,note){
@@ -897,7 +1020,7 @@ const BT={
   seenAll:()=>DB.map(K.BT,t=>({...t,seen:true})),
   seen:eid=>DB.map(K.BT,t=>t.eid===eid?{...t,seen:true}:t),
   setSt:(id,st)=>DB.map(K.BT,t=>t.id===id?{...t,st,doneAt:st==='comp'?nowMs():t.doneAt,doneBy:st==='comp'?App.emp?.id:t.doneBy}:t),
-  add:(text,notes,pri,createdBy,cat,taller,actType)=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||''}),
+  add:(text,notes,pri,createdBy,cat,taller,actType)=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',priDate:today(),st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||''}),
   del:id=>DB.set(K.BT,DB.all(K.BT).filter(t=>t.id!==id)),
   update:(id,fields)=>DB.map(K.BT,t=>t.id===id?{...t,...fields}:t),
   // Auto-delete tasks completed more than 24h ago
@@ -1164,6 +1287,64 @@ const App={
       RT.save(eid,todayStr,{...todayRoute,stops:updatedStops});
       App._updBadge();
     }
+    // 3. Auto-escalate task priorities based on days elapsed
+    App._escalatePriorities();
+    // 4. Auto-merge stops for same client
+    App._mergeRouteStops(eid);
+  },
+
+  _escalatePriorities(){
+    const todayStr=today();
+    let changed=false;
+    DB.set(K.BT,DB.all(K.BT).map(t=>{
+      if(t.st==='comp'||!t.ca)return t;
+      const priDate=t.priDate||t.ca; // date when priority was last set
+      const daysDiff=Math.floor((new Date(todayStr)-new Date(priDate.toString().length===10?priDate:new Date(priDate).toISOString().slice(0,10)))/(1000*60*60*24));
+      let newPri=t.pri||'media';
+      if(daysDiff>=1&&newPri==='baja')newPri='media';
+      if(daysDiff>=1&&newPri==='media')newPri='alta';
+      // Only escalate if actually changed
+      if(newPri!==t.pri){changed=true;return{...t,pri:newPri};}
+      return t;
+    }));
+    if(changed)App._updBadge();
+  },
+
+  _mergeRouteStops(eid){
+    const rt=RT.today(eid);
+    const stops=rt.stops;
+    if(stops.length<2)return;
+    const pending=stops.filter(s=>!s.done);
+    const done=stops.filter(s=>s.done);
+    // Group pending stops by taller name (case-insensitive)
+    const map=new Map();
+    pending.forEach(s=>{
+      const key=s.taller.toLowerCase().trim();
+      if(!map.has(key))map.set(key,[]);
+      map.get(key).push(s);
+    });
+    let merged=false;
+    const newPending=[];
+    map.forEach((group)=>{
+      if(group.length===1){newPending.push(group[0]);return;}
+      // Merge: keep first stop, combine notes
+      const base=group[0];
+      const combinedNotes=group.map((s,i)=>{
+        const note=s.note||'';
+        return note?`(${i+1}) ${note}`:'';
+      }).filter(Boolean).join('\n');
+      const mergedStop={...base,note:combinedNotes||base.note||''};
+      newPending.push(mergedStop);
+      merged=true;
+      // Delete linked tasks for extra stops
+      group.slice(1).forEach(s=>{
+        if(s._taskId)DB.map(K.BT,t=>t.id===s._taskId?{...t,routeEid:null,eid:null,st:'pend'}:t);
+      });
+    });
+    if(merged){
+      RT.save(eid,today(),{...rt,stops:[...newPending,...done]});
+      UI.toast('🔗 Paradas del mismo cliente combinadas','in',3500);
+    }
   },
 
   boss(){
@@ -1393,6 +1574,414 @@ const EF={
   },
 };
 
+/* ─── DETAIL PANEL (pantalla completa) ─── */
+const DP={
+  _type:null,
+  _id:null,
+  _editMode:false,
+  _swipeStartX:0,
+  _swipeStartY:0,
+  _swiping:false,
+
+  // Parse note text: if it has (N) markers, split into numbered sections
+  _parseNotes(noteText){
+    if(!noteText)return null;
+    // Detect pattern: starts with (1) or has \n(2)
+    const rx=/^\((\d+)\)\s*([\s\S]*?)(?=\n\(\d+\)|$)/g;
+    const parts=[];
+    let m;
+    const testStr=noteText.trim();
+    if(!/^\(\d+\)/.test(testStr))return null; // no numbered sections
+    let match;
+    const re2=/\((\d+)\)\s*([\s\S]*?)(?=\n\(\d+\)|$)/g;
+    while((match=re2.exec(testStr))!==null){
+      const content=match[2].trim();
+      if(content)parts.push({n:parseInt(match[1]),text:content});
+    }
+    return parts.length>1?parts:null;
+  },
+
+  _renderNoteBlocks(noteText, editable){
+    const parts=DP._parseNotes(noteText);
+    const count=parts?parts.length:1;
+    const headerLabel=count===1?'📋 Pedido':`📋 <span style="color:var(--er);font-weight:900">${count} Pedidos</span>`;
+
+    let html=`<div style="margin-bottom:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">${headerLabel}</div>`;
+
+    if(parts){
+      parts.forEach(p=>{
+        html+=`<div style="margin-bottom:12px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--er);letter-spacing:.04em;margin-bottom:6px">${p.n}</div>
+          <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--er);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;white-space:pre-wrap;word-break:break-word">${esc(p.text)}</div>
+        </div>`;
+      });
+    }else{
+      html+=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;white-space:pre-wrap;word-break:break-word" id="dp-notes-view">${noteText?esc(noteText):'<span style="color:var(--tx3)">Sin notas</span>'}</div>`;
+    }
+
+    if(editable){
+      html+=`<div id="dp-notes-edit" style="display:none;margin-top:8px">
+        <textarea id="dp-notes-textarea" class="fc" rows="8" style="resize:none;font-size:15px;line-height:1.6">${esc(noteText||'')}</textarea>
+      </div>`;
+    }
+    html+='</div>';
+    return html;
+  },
+
+  openStop(sid, forceEdit){
+    const emp=App.emp;if(!emp)return;
+    const rt=RT.today(emp.id);
+    const s=rt.stops.find(x=>x.id===sid);if(!s)return;
+    DP._type='stop';DP._id=sid;DP._editMode=!!forceEdit;
+    const t=AT[s.type]||{icon:'📌',label:s.type};
+
+    document.getElementById('dp-title').textContent=s.taller;
+    document.getElementById('dp-sub').textContent=`${t.icon} ${t.label}${s.est?' · '+s.est:''}${s.done?' · ✓ '+tStr(s.doneAt):''}`;
+    document.getElementById('dp-header-actions').innerHTML=
+      `<button class="btn btn-gh btn-sm" onclick="DP.toggleEdit()" id="dp-edit-btn" style="font-size:12px">${forceEdit?'💾 Guardar':'✏️ Editar'}</button>`;
+
+    const noteText=s.note||(()=>{const tk=BT.all().find(tk2=>tk2.id===s._taskId);return tk?.notes||'';})();
+    const tk=BT.all().find(tk2=>tk2.id===s._taskId);
+    const taskText=tk?.text||'';
+
+    let body='';
+    // Type badge row
+    body+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <span class="badge" style="background:${t.color}22;color:${t.color};border:1px solid ${t.color}44;font-size:13px;padding:5px 12px">${t.icon} ${t.label}</span>
+      ${s.est?`<span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--tx3)">🕐 ${s.est}</span>`:''}
+      ${s.postponedFrom?`<span class="badge b-wn" style="font-size:11px">📅 Pospuesta</span>`:''}
+    </div>`;
+
+    // Notes — with merged-order parsing
+    body+=DP._renderNoteBlocks(noteText, !s.done);
+
+
+    if(s._mppNote){
+      body+=`<div style="margin-bottom:16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#ff8c00;margin-bottom:8px">⚠️ Material pendiente de servir</div>
+        <div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-left:3px solid #ff8c00;border-radius:var(--r);padding:14px 16px;font-size:14px;color:#ffd080;line-height:1.6;white-space:pre-wrap">${esc(s._mppNote)}</div>
+      </div>`;
+    }
+    if(s.note2){
+      body+=`<div style="margin-bottom:16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ok);margin-bottom:8px">📝 Nota adicional</div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--ok);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--tx2);line-height:1.6;white-space:pre-wrap">${esc(s.note2)}</div>
+      </div>`;
+    }
+
+    document.getElementById('dp-body').innerHTML=body;
+    // Footer
+    document.getElementById('dp-footer').innerHTML=!s.done
+      ?`<button class="btn btn-gh" onclick="SF.edit('${sid}');DP.close()" style="flex:0 0 auto;padding:13px 14px">🔧 Editar parada</button>
+         <button class="btn btn-ok" style="flex:2;padding:15px;font-size:16px;font-weight:800" onclick="EX.open('${sid}');DP.close()">✅ HECHO</button>`
+      :`<div style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--ok)">✓ Completada a las ${tStr(s.doneAt)}</div>`;
+
+    if(forceEdit)DP._setEditVisible(true);
+    DP._show();
+  },
+
+  openTask(tid){
+    const task=BT.all().find(t=>t.id===tid);if(!task)return;
+    DP._type='task';DP._id=tid;DP._editMode=false;
+    const cs=CAT_STYLE[task.cat]||CAT_STYLE.oficina;
+    const at=AT[task.actType]||null;
+    const emp=App.emp;
+    document.getElementById('dp-title').textContent=task.taller||task.text||'Tarea';
+    document.getElementById('dp-sub').textContent=`${cs.icon} ${cs.label}${at?' · '+at.icon+' '+at.label:''}`;
+    document.getElementById('dp-header-actions').innerHTML=
+      `<button class="btn btn-gh btn-sm" onclick="ETF.openEdit('${tid}');DP.close()" style="font-size:12px">✏️ Editar</button>`;
+
+    let body='';
+    const priLabel={alta:'🔴 Alta',media:'🟡 Media',baja:'🟢 Baja'}[task.pri||'media']||'Media';
+    body+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <span class="badge ${cs.badge}" style="font-size:12px;padding:5px 12px">${cs.icon} ${cs.label}</span>
+      ${at?`<span class="badge" style="background:${at.color}22;color:${at.color};border:1px solid ${at.color}44;font-size:12px;padding:5px 12px">${at.icon} ${at.label}</span>`:''}
+      <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[task.pri||'media']}" style="font-size:12px;padding:5px 12px">${priLabel}</span>
+      ${task.routeEid?`<span class="badge b-ok" style="font-size:11px">🗺 ${task.routeEid===emp?.id?'En tu ruta':'Ruta de '+(getEmp(task.routeEid)?.name||task.routeEid)}</span>`:''}
+    </div>`;
+
+    if(task.taller){
+      body+=`<div style="margin-bottom:18px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);margin-bottom:6px">🏭 Taller / Cliente</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;line-height:1.1">${esc(task.taller)}</div>
+        ${task.docTipo?`<div style="margin-top:6px;font-size:14px;font-weight:700;color:#dc50b4">${{albaran:'📄 Albarán',albfac:'📄🧾 Albarán + Factura',contado:'💵 Contado'}[task.docTipo]||task.docTipo}</div>`:''}
+      </div>`;
+    }
+    if(task.text&&task.text!==task.taller){
+      body+=`<div style="margin-bottom:16px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);margin-bottom:8px">📌 Descripción</div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:14px 16px;font-size:15px;color:var(--tx);line-height:1.65;white-space:pre-wrap">${esc(task.text)}</div>
+      </div>`;
+    }
+    if(task.notes){
+      const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+      const si=task.notes.indexOf(PEND_SEP);
+      const pedPart=si>=0?task.notes.slice(0,si).trim():task.notes.trim();
+      const pndPart=si>=0?task.notes.slice(si+PEND_SEP.length).trim():'';
+      body+=DP._renderNoteBlocks(pedPart, false);
+      if(pndPart){
+        body+=`<div style="margin-bottom:16px;background:rgba(220,80,60,.1);border:1px solid var(--er);border-radius:var(--r);padding:14px 16px">
+          <div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:6px">⚠️ PENDIENTE — NO incluir en documento</div>
+          <div style="font-size:14px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(pndPart)}</div>
+        </div>`;
+      }
+    }else if(!task.text||task.text===task.taller){
+      body+=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:24px;text-align:center;color:var(--tx3);font-size:13px;margin-bottom:16px">Sin notas adicionales</div>`;
+    }
+    if(task.ca){
+      const d=new Date(task.ca);
+      body+=`<div style="font-size:12px;color:var(--tx3);padding:6px 0 16px">📅 Creada el ${d.getDate()}/${d.getMonth()+1} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}${task.createdBy?' por '+(getEmp(task.createdBy)?.name||task.createdBy):''}</div>`;
+    }
+    document.getElementById('dp-body').innerHTML=body;
+
+    const alreadyInRoute=!!task.routeEid,isMine=task.routeEid===emp?.id;
+    if(task.st!=='comp'){
+      if(task.cat==='campo'&&!task._mpp){
+        document.getElementById('dp-footer').innerHTML=
+          `<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} f1" style="padding:14px;font-size:15px" onclick="ATR.open('${tid}');DP.close()">${alreadyInRoute?(isMine?'🗺 Reasignar mi ruta':'🗺 Reasignar'):'🗺 Añadir a ruta'}</button>
+           <button class="btn btn-ok f1" style="padding:14px;font-size:15px" onclick="ET.complete('${tid}');DP.close()">✅ Hecho</button>`;
+      }else{
+        document.getElementById('dp-footer').innerHTML=
+          `<button class="btn btn-ok" style="flex:1;padding:15px;font-size:16px;font-weight:800" onclick="ET.complete('${tid}');DP.close()">✅ ${task.cat==='albfac'?'Completado':'Hecho'}</button>`;
+      }
+    }else{
+      document.getElementById('dp-footer').innerHTML=
+        `<div style="flex:1;text-align:center;padding:10px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--ok)">✅ Completada${task.doneAt?' a las '+tStr(task.doneAt):''}</div>`;
+    }
+    DP._show();
+  },
+
+  toggleEdit(){
+    if(DP._type!=='stop')return;
+    DP._editMode=!DP._editMode;
+    if(!DP._editMode)DP._saveNotes();
+    DP._setEditVisible(DP._editMode);
+  },
+  _setEditVisible(on){
+    const viewEl=document.getElementById('dp-notes-view');
+    const editEl=document.getElementById('dp-notes-edit');
+    const btn=document.getElementById('dp-edit-btn');
+    if(viewEl)viewEl.style.display=on?'none':'block';
+    if(editEl)editEl.style.display=on?'block':'none';
+    if(btn)btn.textContent=on?'💾 Guardar':'✏️ Editar';
+  },
+  _saveNotes(){
+    const emp=App.emp;if(!emp||!DP._id)return;
+    const newNote=(document.getElementById('dp-notes-textarea')?.value||'').trim();
+    const rt=RT.today(emp.id);
+    rt.stops=rt.stops.map(s=>s.id===DP._id?{...s,note:newNote}:s);
+    RT.save(emp.id,today(),rt);
+    const s=rt.stops.find(s=>s.id===DP._id);
+    if(s?._taskId)BT.update(s._taskId,{notes:newNote});
+    const viewEl=document.getElementById('dp-notes-view');
+    if(viewEl)viewEl.innerHTML=newNote?esc(newNote):'<span style="color:var(--tx3)">Sin notas</span>';
+    ER.render();
+    UI.toast('Notas guardadas ✅','ok');
+  },
+
+  _show(){
+    const panel=document.getElementById('detail-panel');
+    panel.classList.add('open');
+    document.body.style.overflow='hidden';
+    DP._initSwipe(panel);
+  },
+  close(){
+    if(DP._editMode&&DP._type==='stop')DP._saveNotes();
+    const panel=document.getElementById('detail-panel');
+    panel.classList.remove('open');
+    panel.style.transform='';
+    document.body.style.overflow='';
+    const wasType=DP._type;
+    DP._type=null;DP._id=null;DP._editMode=false;
+    if(wasType==='stop')ER.render();
+    else if(wasType==='task')ET._renderList();
+  },
+
+  _initSwipe(panel){
+    // Remove old listeners by cloning the dp-body scroll area
+    panel.ontouchstart=e=>{
+      const bodyEl=document.getElementById('dp-body');
+      // Only swipe if touching near the left edge OR body is scrolled to top
+      DP._swipeStartX=e.touches[0].clientX;
+      DP._swipeStartY=e.touches[0].clientY;
+      DP._swiping=e.touches[0].clientX<60||(bodyEl&&bodyEl.scrollTop===0);
+      panel.style.transition='none';
+    };
+    panel.ontouchmove=e=>{
+      if(!DP._swiping)return;
+      const dx=e.touches[0].clientX-DP._swipeStartX;
+      const dy=Math.abs(e.touches[0].clientY-DP._swipeStartY);
+      if(dy>dx||dx<0)return; // vertical scroll or swipe left — ignore
+      e.preventDefault();
+      panel.style.transform=`translateX(${Math.max(0,dx)}px)`;
+    };
+    panel.ontouchend=e=>{
+      if(!DP._swiping){panel.style.transition='';return;}
+      const dx=e.changedTouches[0].clientX-DP._swipeStartX;
+      panel.style.transition='transform .28s cubic-bezier(.4,0,.2,1)';
+      if(dx>90){
+        panel.style.transform='translateX(100%)';
+        setTimeout(()=>DP.close(),280);
+      }else{
+        panel.style.transform='translateX(0)';
+        setTimeout(()=>{panel.style.transform='';},300);
+      }
+      DP._swiping=false;
+    };
+  }
+};
+
+/* ─── STOP DETAIL MODAL ─── */
+const SDM={
+  _sid:null,_editMode:false,
+  open(sid,event,forceEdit=false){
+    if(event){
+      // Don't open if clicking on a button inside the card
+      if(event.target.closest('button')||event.target.closest('select'))return;
+    }
+    const emp=App.emp;if(!emp)return;
+    const rt=RT.today(emp.id);
+    const s=rt.stops.find(x=>x.id===sid);if(!s)return;
+    SDM._sid=sid;SDM._editMode=forceEdit;
+    const t=AT[s.type]||{icon:'📌',label:s.type};
+    document.getElementById('sdm-title').textContent=esc(s.taller);
+    document.getElementById('sdm-sub').textContent=`${t.icon} ${t.label}${s.est?' · '+s.est:''}`;
+
+    // Build content
+    let content='';
+    const noteText=s.note||(()=>{const tk=BT.all().find(tk2=>tk2.id===s._taskId);return tk?.notes||tk?.text||'';})();
+    if(noteText){
+      content+=`<div style="padding:12px 14px;background:rgba(255,255,255,.05);border-radius:var(--r);border-left:3px solid var(--acc)">
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em">📋 Pedido / Notas</div>
+        <div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.6">${esc(noteText)}</div>
+      </div>`;
+    }
+    if(s._mppNote){
+      content+=`<div style="padding:12px 14px;background:rgba(255,120,0,.13);border-radius:var(--r);border-left:3px solid #ff8c00">
+        <div style="font-size:11px;color:#ff8c00;font-weight:900;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.07em">⚠️ Material pendiente de servir</div>
+        <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.6">${esc(s._mppNote)}</div>
+      </div>`;
+    }
+    if(s.note2){
+      content+=`<div style="padding:12px 14px;background:rgba(255,255,255,.05);border-radius:var(--r);border-left:3px solid var(--ok)">
+        <div style="font-size:11px;color:var(--ok);font-weight:700;margin-bottom:6px">📝 Nota adicional</div>
+        <div style="font-size:13px;color:var(--tx2);white-space:pre-wrap;line-height:1.6">${esc(s.note2)}</div>
+      </div>`;
+    }
+    if(!noteText&&!s._mppNote&&!s.note2){
+      content=`<div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Sin notas para esta parada</div>`;
+    }
+    document.getElementById('sdm-body').innerHTML=content;
+    // Edit section
+    const notesEditEl=document.getElementById('sdm-notes-edit');
+    if(notesEditEl)notesEditEl.value=noteText;
+    const editSection=document.getElementById('sdm-edit-section');
+    if(editSection)editSection.style.display=forceEdit?'block':'none';
+    const editBtn=document.getElementById('sdm-edit-btn');
+    if(editBtn)editBtn.textContent=forceEdit?'💾 Guardar':'✏️ Editar notas';
+    // Hide done button if already done
+    const doneBtn=document.querySelector('#stop-detail-modal .btn-ok');
+    if(doneBtn)doneBtn.style.display=s.done?'none':'';
+    UI.sm('stop-detail-modal');
+  },
+  toggleEdit(){
+    SDM._editMode=!SDM._editMode;
+    const editSection=document.getElementById('sdm-edit-section');
+    if(editSection)editSection.style.display=SDM._editMode?'block':'none';
+    const editBtn=document.getElementById('sdm-edit-btn');
+    if(SDM._editMode){
+      if(editBtn)editBtn.textContent='💾 Guardar';
+    }else{
+      // Save
+      SDM.save();
+      if(editBtn)editBtn.textContent='✏️ Editar notas';
+    }
+  },
+  save(){
+    const emp=App.emp;if(!emp||!SDM._sid)return;
+    const newNotes=(document.getElementById('sdm-notes-edit')?.value||'').trim();
+    const rt=RT.today(emp.id);
+    rt.stops=rt.stops.map(s=>s.id===SDM._sid?{...s,note:newNotes}:s);
+    RT.save(emp.id,today(),rt);
+    // Also update linked task
+    const s=rt.stops.find(s=>s.id===SDM._sid);
+    if(s?._taskId)BT.update(s._taskId,{notes:newNotes});
+    UI.toast('Notas actualizadas ✅','ok');
+    ER.render();
+  }
+};
+
+/* ─── START ROUTE MODAL ─── */
+const SRM={
+  open(){
+    const emp=App.emp;if(!emp)return;
+    const rt=RT.today(emp.id);
+    const stops=rt.stops.filter(s=>!s.done);
+    const hasColorReader=stops.some(s=>s.type==='lectura'||s.type==='entrega_lectura');
+    document.getElementById('srm-body').innerHTML=`<div style="font-size:40px;margin-bottom:8px">🚐</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tx)">¡Listo para salir!</div><div style="font-size:13px;color:var(--tx3);margin-top:4px">${stops.length} parada${stops.length===1?'':'s'} pendiente${stops.length===1?'':'s'} hoy</div>`;
+    const colorEl=document.getElementById('srm-color-reader');
+    const noColorEl=document.getElementById('srm-no-color');
+    if(hasColorReader){
+      colorEl.classList.remove('hidden');
+      noColorEl.classList.add('hidden');
+    }else{
+      colorEl.classList.add('hidden');
+      noColorEl.classList.remove('hidden');
+    }
+    UI.sm('start-route-modal');
+  },
+  confirmStart(hasReader){
+    const emp=App.emp;if(!emp)return;
+    UI.hm('start-route-modal');
+    if(!hasReader&&document.getElementById('srm-color-reader')&&!document.getElementById('srm-color-reader').classList.contains('hidden')){
+      UI.toast('⚠️ Recuerda llevar el lector de colores la próxima vez','wn',4000);
+    }
+    // Record route start with GPS
+    const rt=RT.today(emp.id);
+    const save=(lat,lng)=>{
+      RT.save(emp.id,today(),{...rt,routeStarted:true,routeStartedAt:nowMs(),routeStartLat:lat,routeStartLng:lng});
+      UI.toast('🚐 ¡Ruta iniciada!','ok');
+      ER.render();
+      // Store in LC for boss to see
+      const locs=LS.g(K.LC)||{};
+      if(!locs[emp.id])locs[emp.id]={};
+      locs[emp.id].routeStart={ts:nowMs(),lat,lng};
+      LS.s(K.LC,locs);
+    };
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        p=>save(p.coords.latitude,p.coords.longitude),
+        ()=>save(null,null),
+        {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+      );
+    }else save(null,null);
+  },
+  end(){
+    const emp=App.emp;if(!emp)return;
+    UI.confirm('🏁 Fin de ruta','¿Confirmar fin de ruta?',()=>{
+      const rt=RT.today(emp.id);
+      const save=(lat,lng)=>{
+        RT.save(emp.id,today(),{...rt,routeEnded:true,routeEndedAt:nowMs(),routeEndLat:lat,routeEndLng:lng});
+        // Store in LC for boss
+        const locs=LS.g(K.LC)||{};
+        if(!locs[emp.id])locs[emp.id]={};
+        locs[emp.id].routeEnd={ts:nowMs(),lat,lng};
+        LS.s(K.LC,locs);
+        UI.toast('🏁 Ruta finalizada','ok');
+        ER.render();
+      };
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+          p=>save(p.coords.latitude,p.coords.longitude),
+          ()=>save(null,null),
+          {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+        );
+      }else save(null,null);
+    });
+  }
+};
+
 /* ─── RUTA ─── */
 const ER={
   _map:null,_eid:null,
@@ -1402,6 +1991,8 @@ const ER={
     const rt=RT.today(emp.id);const stops=rt.stops;
     const dn=stops.filter(s=>s.done).length;
     const allDone=dn===stops.length&&stops.length>0;
+    const routeStarted=rt.routeStarted||false;
+    const routeEnded=rt.routeEnded||false;
     // Pending first, then done — unless all are done (show original order)
     const sorted=allDone?stops:[...stops.filter(s=>!s.done),...stops.filter(s=>s.done)];
     const stopsHtml=stops.length===0?`<div class="es"><div class="ei">🗺</div><div class="et">Sin paradas</div><div class="ed">Pulsa "+ Parada" para planificar la ruta</div></div>`
@@ -1409,19 +2000,56 @@ const ER={
         const t=AT[s.type]||{icon:'📌',label:s.type,color:'#888'};
         const origIdx=stops.indexOf(s);
         const canU=origIdx>0&&!stops[origIdx-1].done&&!s.done,canD=origIdx<stops.length-1&&!stops[origIdx+1].done&&!s.done;
-        return`<div class="sc ${s.done?'done':''}">
+        const noteRaw=s.note||(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.notes||tk?.text||'';})();
+        const hasContent=noteRaw||s.note2||s._mppNote;
+        // Build inline note — always expanded
+        let inlineNote='';
+        if(hasContent){
+          // Split noteRaw: separate "Material pendiente:" blocks (from previous orders) from current delivery notes
+          const MPP_RX=/(?:^|\n)(Material pendiente:\n[\s\S]*?)(?=\n\n[^\n]|\n*$)/g;
+          const mppPrevParts=[];
+          const cleanNote=noteRaw.replace(/(?:^|\n)Material pendiente:\n([\s\S]*?)(?=\n\n[^\n]|\n*$)/g,(m,mat)=>{
+            mppPrevParts.push(mat.replace(/\n*\d+\/\d+\/\d+\s*$/,'').trim());
+            return '';
+          }).replace(/\n{3,}/g,'\n\n').trim();
+          const parts=DP._parseNotes(cleanNote);
+          if(parts){
+            inlineNote=`<div style="margin:6px 13px 8px;display:flex;flex-direction:column;gap:6px">
+              ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
+                <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
+                <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(p.text)}</div>
+              </div>`).join('')}
+            </div>`;
+          }else if(cleanNote){
+            inlineNote=`<div style="margin:6px 13px 8px;border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(cleanNote)}</div>`;
+          }
+          // Pink: material from previous order being served NOW
+          if(mppPrevParts.length>0){
+            inlineNote+=`<div style="margin:0 13px 8px;background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 12px">
+              <div style="font-size:11px;font-weight:900;color:#c084fc;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">🔁 PENDIENTE PEDIDO ANTERIOR</div>
+              <div style="font-size:13px;color:#e9d5ff;white-space:pre-wrap;line-height:1.5">${esc(mppPrevParts.join('\n'))}</div>
+            </div>`;
+          }
+          // Orange: material that CAN'T be served today
+          if(s._mppNote){
+            inlineNote+=`<div style="margin:0 13px 8px;background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-radius:8px;padding:8px 12px">
+              <div style="font-size:11px;font-weight:900;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">⚠️ MATERIAL PENDIENTE DE SERVIR</div>
+              <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${esc(s._mppNote)}</div>
+            </div>`;
+          }
+        }
+        return`<div class="sc ${s.done?'done':''}" style="cursor:pointer" onclick="if(!event.target.closest('button')&&!event.target.closest('select'))DP.openStop('${s.id}')">
           <div class="sc-hdr">
             <div class="sc-num" style="background:${s.done?'var(--ok)':emp.color};flex-shrink:0">${s.done?'✓':origIdx+1}</div>
             <div class="sc-info" style="flex:1;min-width:0;overflow:hidden">
               <div class="sc-name" style="color:var(--wn)">${esc(s.taller)}</div>
               <div class="sc-type">${t.icon} ${t.label}${s.est?` · ${s.est}`:''}</div>
             </div>
-            ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ Hecho</span>`:''}
+            ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ ${tStr(s.doneAt)}</span>`:''}
           </div>
-          ${s.note?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px">📋 Pedido</div><div style="white-space:pre-wrap">${esc(s.note)}</div></div>`:''}
-          ${s._mppNote?`<div style="margin:0 13px 8px;padding:10px 12px;background:rgba(255,180,0,.08);border-radius:6px;border-left:3px solid var(--wn);font-size:13px;color:var(--tx);line-height:1.6"><div style="font-size:11px;color:var(--wn);font-weight:700;margin-bottom:4px">⚠️ Material pendiente</div><div style="white-space:pre-wrap">${esc(s._mppNote)}</div></div>`:''}
-          ${s.note2?`<div style="margin:${s.note?'-4px':'0'} 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--ok);font-size:12px;color:var(--tx2);line-height:1.55;white-space:pre-wrap">📝 ${esc(s.note2)}</div>`:''}
-          ${!s.note&&!s.note2&&s._taskId?(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.notes?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px">📋 Pedido</div><div style="white-space:pre-wrap">${esc(tk.notes)}</div></div>`:tk?.text?`<div style="margin:0 13px 8px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.55;white-space:pre-wrap">${esc(tk.text)}</div>`:'';})():''}          ${!s.done?`
+          ${inlineNote}
+          ${s.postponedFrom?`<div style="padding:0 13px 6px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
+          ${!s.done?`
           <div style="display:flex;align-items:center;gap:6px;padding:0 13px 11px;flex-wrap:nowrap">
             <div class="ob" style="flex-shrink:0">
               <button class="ob-btn" onclick="ER.mv('${s.id}',-1)" ${!canU?'disabled':''}>▲</button>
@@ -1431,21 +2059,28 @@ const ER={
             <div style="position:relative;flex-shrink:0">
               <button class="btn btn-sec btn-sm btn-ic" onclick="ER.toggleMenu('${s.id}')" style="font-size:18px;letter-spacing:1px;padding:5px 9px">⋯</button>
               <div id="smenu-${s.id}" class="hidden" style="position:absolute;right:0;bottom:38px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--r);min-width:185px;box-shadow:var(--sh);z-index:999;overflow:hidden">
-                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');SF.edit('${s.id}')">✏️ &nbsp;Editar parada</button>
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');DP.openStop('${s.id}',true)">✏️ &nbsp;Ver / Editar notas</button>
+                <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');SF.edit('${s.id}')">🔧 &nbsp;Editar parada</button>
                 <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');ER.reassign('${s.id}')">↔ &nbsp;Pasar a compañero</button>
                 <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr)" onclick="ER.toggleMenu('${s.id}');ER.postponeStop('${s.id}')">📅 &nbsp;Posponer a mañana</button>
                 ${s._taskId?`<button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;border-bottom:1px solid var(--bdr);color:var(--in)" onclick="ER.toggleMenu('${s.id}');ER.returnToTask('${s.id}')">↩️ &nbsp;Devolver a tarea</button>`:''}
                 <button class="btn btn-gh" style="width:100%;text-align:left;border-radius:0;padding:11px 14px;font-size:13px;border:none;color:var(--er)" onclick="ER.toggleMenu('${s.id}');ER.del('${s.id}')">🗑 &nbsp;Eliminar parada</button>
               </div>
             </div>
-          </div>
-          ${s.postponedFrom?`<div style="padding:0 13px 8px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}`:''}
-          ${s.done&&s.postponedFrom?`<div style="padding:0 13px 4px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
-          ${s.done?`<div class="sc-foot"><div class="sc-time">🕐 ${tStr(s.doneAt)}</div></div>`:''}
+          </div>`:''}
         </div>`;
       }).join('');
 
     const postponed=stops.filter(s=>s.postponedFrom);
+    // Route start/end buttons
+    const routeBtns=stops.length>0?`
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        ${!routeStarted?`<button class="btn btn-ok f1" onclick="SRM.open()" style="gap:6px">🚐 Iniciar ruta</button>`
+          :`<div class="btn btn-gh f1" style="pointer-events:none;justify-content:center;opacity:.7;font-size:13px">✅ Ruta iniciada ${rt.routeStartedAt?tStr(rt.routeStartedAt):''}</div>`}
+        ${routeStarted&&!routeEnded?`<button class="btn btn-er btn-sm" onclick="SRM.end()" style="flex-shrink:0">🏁 Fin de ruta</button>`:
+          routeEnded?`<div class="btn btn-gh btn-sm" style="pointer-events:none;opacity:.7">🏁 ${tStr(rt.routeEndedAt)}</div>`:''}
+      </div>`:'';
+
     document.getElementById('t-ruta').innerHTML=`
       <div class="sh"><div class="st">Mi Ruta de Hoy</div>
         <div style="display:flex;gap:6px">
@@ -1455,6 +2090,7 @@ const ER={
       </div>
       ${postponed.length>0?`<div class="al al-in mb8" style="font-size:12px">📅 ${postponed.length} parada${postponed.length===1?'':'s'} pospuesta${postponed.length===1?'':'s'} de días anteriores</div>`:''}
       ${stops.length>0?`<div class="card mb12" style="padding:11px"><div class="df ac jb mb8"><div class="card-t">Progreso</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:${dn===stops.length?'var(--ok)':'var(--acc)'}"> ${dn} / ${stops.length}</div></div><div class="pgw" style="height:5px;margin-bottom:0"><div class="pgb" style="width:${pct(dn,stops.length||1)}%"></div></div></div>`:''}
+      ${routeBtns}
       ${stops.length>0&&rt.stops.some(s=>s.gLat!=null)?`<div style="margin-bottom:8px"><button class="btn btn-gh btn-sm" style="width:100%" id="map-toggle-btn" onclick="ER.toggleMap()">🗺 Ver mapa de ruta</button><div id="emp-map" class="hidden"></div></div>`:''}
       ${stopsHtml}
     `;
@@ -1537,10 +2173,9 @@ const ER={
     RT.del(App.emp.id,sid);
     // Add to their route (keep all stop data, reset id)
     RT.addStop(toEid,{...stop,id:uid()});
-    // Update linked task if any
-    if(stop._taskId){
-      DB.map(K.BT,t=>t.id===stop._taskId?{...t,routeEid:toEid}:t);
-    }
+    // Update linked tasks
+    const allIds=stop._taskIds&&stop._taskIds.length>0?stop._taskIds:(stop._taskId?[stop._taskId]:[]);
+    allIds.forEach(tid=>DB.map(K.BT,t=>t.id===tid?{...t,routeEid:toEid}:t));
     UI.hm('reasign-modal');
     const toEmp=getEmp(toEid);
     UI.toast(`Parada pasada a ${toEmp?.name} ↔`,'ok');
@@ -1560,10 +2195,12 @@ const ER={
   },
   returnToTask(sid){
     const rt=RT.today(App.emp.id);
-    const s=rt.stops.find(x=>x.id===sid);if(!s||!s._taskId)return;
-    UI.confirm('↩️ Devolver a tarea','La parada se eliminará de la ruta y la tarea volverá a estado pendiente.',()=>{
+    const s=rt.stops.find(x=>x.id===sid);if(!s)return;
+    const allIds=s._taskIds&&s._taskIds.length>0?s._taskIds:(s._taskId?[s._taskId]:[]);
+    if(allIds.length===0)return;
+    UI.confirm('↩️ Devolver a tarea','La parada se eliminará de la ruta y las tareas volverán a estado pendiente.',()=>{
       RT.del(App.emp.id,sid);
-      DB.map(K.BT,t=>t.id===s._taskId?{...t,routeEid:null,eid:null,st:'pend'}:t);
+      allIds.forEach(tid=>DB.map(K.BT,t=>t.id===tid?{...t,routeEid:null,eid:null,st:'pend'}:t));
       UI.toast('Devuelta a tareas pendientes ↩️','in');
       ER.render();
     });
@@ -1571,11 +2208,13 @@ const ER={
   del(sid){
     const rt=RT.today(App.emp.id);
     const s=rt.stops.find(x=>x.id===sid);
-    UI.confirm('Eliminar parada',s?._taskId?'Se eliminará la parada y su tarea asociada.':'¿Eliminar esta parada de la ruta?',()=>{
-      if(s?._taskId)BT.del(s._taskId);
+    const allIds=s?._taskIds&&s._taskIds.length>0?s._taskIds:(s?._taskId?[s._taskId]:[]);
+    const hasTask=allIds.length>0;
+    UI.confirm('Eliminar parada',hasTask?'Se eliminará la parada y sus tareas asociadas.':'¿Eliminar esta parada de la ruta?',()=>{
+      allIds.forEach(tid=>BT.del(tid));
       RT.del(App.emp.id,sid);
       ER.render();App._updBadge();
-      UI.toast(s?._taskId?'Parada y tarea eliminadas 🗑':'Parada eliminada','in');
+      UI.toast(hasTask?'Parada y tareas eliminadas 🗑':'Parada eliminada','in');
     });
   },
 };
@@ -1753,7 +2392,8 @@ const EX={
     const stop=rt.stops.find(s=>s.id===EX._sid);if(!stop)return;
 
     RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,'');
-    if(stop._taskId)BT.setSt(stop._taskId,'comp');
+    const allIds=stop._taskIds&&stop._taskIds.length>0?stop._taskIds:(stop._taskId?[stop._taskId]:[]);
+    allIds.forEach(tid=>BT.setSt(tid,'comp'));
 
     const createTask=document.getElementById('ex-create-task')?.checked;
     if(createTask){
@@ -1853,7 +2493,9 @@ const ET={
     const panel=document.getElementById('t-tareas');
     if(!document.getElementById('et-list')){
       panel.innerHTML=`
-        <div class="sh"><div class="st">Tareas del Equipo</div><button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button></div>
+        <div class="sh"><div class="st">Tareas del Equipo</div>
+          <button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button>
+        </div>
         <div style="position:relative;margin-bottom:10px">
           <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px" autocomplete="off">
         </div>
@@ -1920,7 +2562,32 @@ const ET={
       const at=AT[t.actType]||null;
       const caDate=t.ca?new Date(t.ca):null;
       const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1} ${String(caDate.getHours()).padStart(2,'0')}:${String(caDate.getMinutes()).padStart(2,'0')}`:'';
-      return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%)">
+      // Build inline notes — always expanded
+      let inlineNotes='';
+      const {pedido:notePedido,mpp:noteMpp}=MPP.split(t.notes||'');
+      const isMppTask=MPP.isMpp(t);
+      if(t.notes){
+        const parts=DP._parseNotes(t.notes);
+        if(parts){
+          inlineNotes=`<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+            ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
+              <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
+              <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(p.text)}</div>
+            </div>`).join('')}
+          </div>`;
+        }else if(notePedido&&!isMppTask){
+          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${esc(notePedido)}</div>`;
+        }
+        if(noteMpp||isMppTask){
+          const mppText=isMppTask?MPP.split(t.notes).mpp:noteMpp;
+          inlineNotes+=`<div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-radius:8px;padding:8px 12px;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:900;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">⚠️ MATERIAL PENDIENTE DE SERVIR</div>
+            <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${esc(mppText)}</div>
+          </div>`;
+        }
+      }
+      const mppBadge=(isMppTask||noteMpp)?`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,120,0,.18);border:1px solid rgba(255,140,0,.5);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.05em;margin-left:4px">⚠️ MAT. PENDIENTE</span>`:'';
+      return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%);cursor:pointer" onclick="DP.openTask('${t.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
@@ -1928,40 +2595,31 @@ const ET={
           </div>
           ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
-        ${t.taller?`<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:3px">
+        ${t.taller?`<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;line-height:1.1">${esc(t.taller)}</div>
           ${t.docTipo?`<span style="font-size:13px;font-weight:700;color:#dc50b4;white-space:nowrap">${{albaran:'📄 Albarán',albfac:'📄🧾 Alb + Fra',contado:'💵 Contado'}[t.docTipo]||t.docTipo}</span>`:''}
+          ${mppBadge}
         </div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'||( t.text && t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'20px'};font-weight:${t.taller?'500':'900'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};letter-spacing:${t.taller?'normal':'.02em'};line-height:1.5;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap">${esc(t.text)}</div>`:''}
-          ${t.notes?(()=>{
-            if(t.cat==='albfac'){
-              const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
-              const si=t.notes.indexOf(PEND_SEP);
-              const pedPart=si>=0?t.notes.slice(0,si).trim():t.notes.trim();
-              const pndPart=si>=0?t.notes.slice(si+PEND_SEP.length).trim():'';
-              return`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(pedPart)}</div>`
-                +(pndPart?`<div style="margin-top:6px;padding:8px 10px;background:rgba(220,80,60,.10);border-radius:6px;border-left:3px solid var(--er);font-size:13px;color:var(--tx);line-height:1.6"><div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:4px">⚠️ PENDIENTE — NO incluir en documento</div><div style="white-space:pre-wrap">${esc(pndPart)}</div></div>`:'');
-            }
-            return`<div style="margin-top:6px;padding:8px 10px;background:rgba(255,255,255,.06);border-radius:6px;border-left:3px solid var(--acc);font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(t.notes)}</div>`;
-          })():''}
+          ${(t.cat!=='campo'||(t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.text)}</div>`:''}
+          ${inlineNotes}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
           </div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" onclick="event.stopPropagation()">
           ${t.cat==='campo'&&!t._mpp?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
             ${t.st!=='comp'
               ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
                   ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
-                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ ${t.cat==='albfac'?'Facturado':'Hecho'}</button>
+                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ ${t.cat==='albfac'?'Completado':'Hecho'}</button>
                 </div>`
-              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ ${t.cat==='albfac'?'Facturado':'Hecho'}${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
+              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ ${t.cat==='albfac'?'Completado':'Hecho'}${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
             }
           `}
-          <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
-          <button class="btn btn-gh btn-sm btn-ic" onclick="ET.del('${t.id}')" title="Eliminar">🗑</button>
+          ${t.cat!=='albfac'?`<button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>`:''}
+          <button class="btn btn-sm btn-ic" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171" onclick="ET.del('${t.id}')" title="Eliminar">🗑</button>
         </div>
       </div>`;
     };
@@ -2111,8 +2769,9 @@ const EMPP={
         return`<div class="card mb12" style="border:1px solid rgba(240,168,0,.3)">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--bdr)">
             <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;text-transform:uppercase;color:var(--wn);letter-spacing:.04em">🏭 ${esc(g.name)}</div>
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:6px;align-items:center">
               <span style="font-size:11px;color:var(--tx3);padding:3px 8px;background:var(--bg3);border-radius:10px">${gItems.length} art.</span>
+              <button class="btn btn-ok btn-sm" style="font-size:11px;padding:4px 10px;background:#1ec98a;border:none;color:#fff;font-weight:800" onclick="EMPP.doneGroup('${g.id}')" title="Marcar pedido realizado y eliminar grupo">✅ Hecho</button>
               <button class="btn btn-er btn-sm" style="font-size:11px;padding:3px 8px" onclick="EMPP.delGroup('${g.id}')">🗑</button>
             </div>
           </div>
@@ -2163,6 +2822,16 @@ const EMPP={
     const newGid=gid==='__none__'?null:gid;
     DB.map(K.MPP,i=>i.id===itemId?{...i,groupId:newGid}:i);
     EMPP.render();UI.toast(newGid?'Movido al grupo ✅':'Quitado del grupo','ok');
+  },
+  doneGroup(gid){
+    const g=EMPP.groups().find(x=>x.id===gid);
+    UI.confirm(`✅ Pedido realizado`,`¿Confirmar que el pedido con "${g?.name||'este proveedor'}" está hecho? Se eliminará el grupo y todos sus artículos.`,()=>{
+      DB.set(K.MPP,EMPP.all().filter(i=>i.groupId!==gid));
+      const groups=EMPP.groups().filter(x=>x.id!==gid);
+      EMPP.saveGroups(groups);
+      UI.toast(`✅ Pedido "${g?.name||''}" marcado como hecho`,'ok');
+      EMPP.render();App._updMppBadge();
+    });
   },
   delGroup(gid){
     UI.confirm('Eliminar grupo','Se eliminará el grupo. Las notas dentro quedarán sin agrupar.',()=>{
@@ -2716,15 +3385,18 @@ const ATR={
       const now=new Date();
       const dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
       mppTaskId=uid();
-      DB.push(K.BT,{id:mppTaskId,text:taller,notes:`📦 Material pendiente:\n${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'campo',taller,actType:'entrega'});
+      DB.push(K.BT,{id:mppTaskId,text:taller,notes:`Material pendiente:\n${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'campo',taller,actType:'entrega'});
     }
     // Combine notes from selected pending tasks
     let combinedNotes=task.notes||'';
     if(ATR._pendingIds.length>0){
       const extras=ATR._pendingIds.map(pid=>BT.all().find(t=>t.id===pid)).filter(Boolean);
       extras.forEach(t=>{
-        const part=[t.text,t.notes].filter(Boolean).join('\n');
-        if(part)combinedNotes+=(combinedNotes?'\n\n':'')+`— ${part}`;
+        // Skip taller name (t.text) if it's the same as the stop taller — ya se ve en el título
+        const notesOnly=(t.notes||'').trim();
+        const textPart=(t.text&&t.text.toLowerCase()!==taller.toLowerCase()&&t.text!==t.taller)?t.text.trim():'';
+        const part=[textPart,notesOnly].filter(Boolean).join('\n');
+        if(part)combinedNotes+=(combinedNotes?'\n\n':'')+part;
         // Mark as en_proc linked to same stop
         DB.map(K.BT,x=>x.id===t.id?{...x,st:'en_proc',eid:toEid,routeEid:toEid}:x);
       });
@@ -2775,7 +3447,11 @@ const ATR={
     const toEmp=getEmp(toEid);
     const isSelf=toEid===App.emp?.id;
     const extra=ATR._pendingIds.length>0?` (+${ATR._pendingIds.length} pedido${ATR._pendingIds.length>1?'s':''} combinado${ATR._pendingIds.length>1?'s':''})`:''
-    UI.toast(isSelf?`Añadido a tu ruta 🗺${extra}`:`Asignado a ${toEmp?.name} 🗺${extra}`,'ok');
+    // Check if it was merged (stop already existed for this taller)
+    const rt2=RT.today(toEid);
+    const mergedStop=rt2.stops.find(x=>!x.done&&x.taller===taller&&x._taskIds&&x._taskIds.length>1);
+    const mergeMsg=mergedStop?` · Unificado en parada existente 🔗`:'';
+    UI.toast(isSelf?`Añadido a tu ruta 🗺${extra}${mergeMsg}`:`Asignado a ${toEmp?.name} 🗺${extra}${mergeMsg}`,'ok');
     if(mppMat)UI.toast('Tarea de material pendiente creada 📦','in',3500);
     ATR._pendingIds=[];
     ET.render();
