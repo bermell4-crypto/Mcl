@@ -1667,13 +1667,14 @@ const DP={
     return parts.length>1?parts:null;
   },
 
-  _renderNoteBlocks(noteText, editable){
+  _renderNoteBlocks(noteText, editable, dateStr){
     const parts=DP._parseNotes(noteText);
     const count=parts?parts.length:1;
     const headerLabel=count===1?'📋 Pedido':`📋 <span style="color:var(--er);font-weight:900">${count} Pedidos</span>`;
+    const dateBit=dateStr?`<span style="font-size:11px;font-weight:400;color:var(--tx3);margin-left:10px;text-transform:none;letter-spacing:0">📅 ${dateStr}</span>`:'';
 
     let html=`<div style="margin-bottom:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">${headerLabel}</div>`;
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">${headerLabel}${dateBit}</div>`;
 
     if(parts){
       parts.forEach(p=>{
@@ -1782,10 +1783,12 @@ const DP={
     }
     if(task.notes){
       const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
-      const si=task.notes.indexOf(PEND_SEP);
-      const pedPart=si>=0?task.notes.slice(0,si).trim():task.notes.trim();
-      const pndPart=si>=0?task.notes.slice(si+PEND_SEP.length).trim():'';
-      body+=DP._renderNoteBlocks(pedPart, false);
+      const rawNotes=task.cat==='albfac'?task.notes.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim():task.notes;
+      const si=rawNotes.indexOf(PEND_SEP);
+      const pedPart=si>=0?rawNotes.slice(0,si).trim():rawNotes.trim();
+      const pndPart=si>=0?rawNotes.slice(si+PEND_SEP.length).trim():'';
+      const _ds=(()=>{if(!task.ca)return'';const d=new Date(task.ca);return`Creada el ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}${task.createdBy?' por '+(getEmp(task.createdBy)?.name||task.createdBy):''}`;})();
+      body+=DP._renderNoteBlocks(pedPart, false, _ds);
       if(pndPart){
         body+=`<div style="margin-bottom:16px;background:rgba(220,80,60,.1);border:1px solid var(--er);border-radius:var(--r);padding:14px 16px">
           <div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:6px">⚠️ PENDIENTE — NO incluir en documento</div>
@@ -1794,10 +1797,6 @@ const DP={
       }
     }else if(!task.text||task.text===task.taller){
       body+=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);padding:24px;text-align:center;color:var(--tx3);font-size:13px;margin-bottom:16px">Sin notas adicionales</div>`;
-    }
-    if(task.ca){
-      const d=new Date(task.ca);
-      body+=`<div style="font-size:12px;color:var(--tx3);padding:6px 0 16px">📅 Creada el ${d.getDate()}/${d.getMonth()+1} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}${task.createdBy?' por '+(getEmp(task.createdBy)?.name||task.createdBy):''}</div>`;
     }
     const dpColors=task.cat==='albfac'?getColorsForTaller(task.taller):getTaskColors(task);
     if(dpColors.length){
@@ -1820,10 +1819,13 @@ const DP={
       if(task.cat==='campo'&&!task._mpp){
         document.getElementById('dp-footer').innerHTML=
           `<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} f1" style="padding:14px;font-size:15px" onclick="ATR.open('${tid}');DP.close()">${alreadyInRoute?(isMine?'🗺 Reasignar mi ruta':'🗺 Reasignar'):'🗺 Añadir a ruta'}</button>
-           <button class="btn btn-ok f1" style="padding:14px;font-size:15px" onclick="ET.complete('${tid}');DP.close()">✅ Hecho</button>`;
+           <button class="btn btn-gh f1" style="padding:14px;font-size:15px" onclick="ETF.openEdit('${tid}');DP.close()">✏️ Editar</button>`;
+      }else if(task.cat==='albfac'){
+        document.getElementById('dp-footer').innerHTML=
+          `<button class="btn btn-ok" style="flex:1;padding:15px;font-size:16px;font-weight:800" onclick="ET.complete('${tid}');DP.close()">🖨️ IMPRESO</button>`;
       }else{
         document.getElementById('dp-footer').innerHTML=
-          `<button class="btn btn-ok" style="flex:1;padding:15px;font-size:16px;font-weight:800" onclick="ET.complete('${tid}');DP.close()">✅ ${task.cat==='albfac'?'Completado':'Hecho'}</button>`;
+          `<button class="btn btn-gh" style="flex:1;padding:15px;font-size:16px;font-weight:800" onclick="ETF.openEdit('${tid}');DP.close()">✏️ Editar</button>`;
       }
     }else{
       document.getElementById('dp-footer').innerHTML=
@@ -2139,11 +2141,11 @@ const ER={
             const allCols=tk?getTaskColors(tk):[];
             if(!allCols.length)return'';
             const allDoneR=allCols.every(c=>c.done);
-            return'<div style="margin:0 13px 8px;background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,'+(allDoneR?'.25':'.45')+'};border-radius:8px;padding:8px 12px">'.replace('}','')
+            return'<div style="margin:0 13px 8px;background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,.45);border-radius:8px;padding:8px 12px">'
               +'<div style="font-size:10px;font-weight:900;color:#c084fc;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.07em;margin-bottom:5px">🎨 COLOR ACABADO'+(allDoneR?' ✅':'')+'</div>'
               +allCols.map(c=>'<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:3px">'
                 +'<span style="font-size:14px">'+(c.done?'✅':'⏳')+'</span>'
-                +'<span style="color:'+(c.done?'rgba(233,213,255,.55)':'#e9d5ff')+'">'+esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))+'</span>'
+                +'<span style="color:#e9d5ff">'+esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))+'</span>'
                 +'</div>').join('')
               +'</div>';
           })()}
@@ -2713,7 +2715,7 @@ const ET={
       let colorInline='';
       if(tColors.length&&(t.cat==='campo'||t.cat==='albfac')){
         const allDone=tColors.every(c=>c.done);
-        colorInline=`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,${allDone?'.2':'.4'});border-radius:6px;padding:7px 10px;margin-bottom:6px${allDone?';opacity:.55':''}">
+        colorInline=`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,.4);border-radius:6px;padding:7px 10px;margin-bottom:6px">
           <div style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">🎨 Color Acabado</div>
           ${tColors.map(c=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
             <span style="font-size:14px;flex-shrink:0">${c.done?'✅':'⏳'}</span>
@@ -2748,9 +2750,9 @@ const ET={
             ${t.st!=='comp'
               ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
                   ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
-                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">✅ ${t.cat==='albfac'?'Completado':'Hecho'}</button>
+                  <button class="btn btn-ok btn-sm" style="white-space:nowrap;flex-shrink:0;flex:1" onclick="ET.complete('${t.id}')">${t.cat==='albfac'?'🖨️ IMPRESO':'✅ Hecho'}</button>
                 </div>`
-              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">✅ ${t.cat==='albfac'?'Completado':'Hecho'}${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
+              :`<span class="badge b-ok" style="flex:1;justify-content:center;padding:6px 10px;flex-direction:column;gap:1px;height:auto">${t.cat==='albfac'?'🖨️ IMPRESO':'✅ Hecho'}${t.doneAt?' · '+tStr(t.doneAt):''}${t.doneBy?` · ${getEmp(t.doneBy)?.name||t.doneBy}`:''}</span>`
             }
           `}
           ${t.cat!=='albfac'?`<button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>`:''}
@@ -2792,7 +2794,7 @@ const ET={
               </div>
             </div>
           </div>`).join('')}
-        ${!allDone?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:8px;font-weight:700" onclick="event.stopPropagation();ET.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
+        ${!allDone&&colors.length>=2?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:8px;font-weight:700" onclick="event.stopPropagation();ET.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
         <div style="display:flex;gap:6px;margin-top:2px">
           <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
           <button class="btn btn-sm btn-ic" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171" onclick="ET.del('${t.id}')" title="Eliminar">🗑</button>
@@ -2812,10 +2814,9 @@ const ET={
   },
   colorAllDone(taskId){
     const t=BT.all().find(x=>x.id===taskId);if(!t)return;
-    const name=t.taller||t.text||'este cliente';
     UI.confirm(
       '🎨 Todos los colores hechos',
-      `¿Confirmas que todos los colores de <strong>${esc(name)}</strong> están completados?`,
+      `¿Confirmas que todos los colores están hechos?`,
       ()=>{
         const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));
         BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
@@ -3399,7 +3400,7 @@ const BCom={
               </div>
             </div>
           </div>`).join('')}
-        ${!allDone?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:7px;font-weight:700" onclick="BCom.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
+        ${!allDone&&colors.length>=2?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:7px;font-weight:700" onclick="BCom.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
         <div style="display:flex;gap:6px;margin-top:4px">
           <button class="btn btn-sec btn-sm btn-ic" onclick="BCom.edit('${t.id}')" title="Editar">✏️</button>
           <button class="btn btn-gh btn-sm btn-ic" onclick="BCom.del('${t.id}')" title="Eliminar">🗑</button>
@@ -3420,7 +3421,7 @@ const BCom={
         <div style="margin-bottom:7px">
           ${t.cat!=='campo'?`<div style="font-size:13px;color:var(--tx);font-weight:600">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="font-size:11px;color:var(--tx3);margin-top:1px">${esc(t.notes)}</div>`:''}
-          ${(()=>{const bc=(t.cat==='albfac'?getColorsForTaller(t.taller):getTaskColors(t));if(!bc.length)return'';const ad=bc.every(c=>c.done);return`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,${ad?'.15':'.4'});border-radius:6px;padding:5px 8px;margin-top:5px${ad?';opacity:.5':''}"><span style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase">🎨 Color:</span> <span style="font-size:11px;color:var(--tx)">${bc.map(c=>`${c.done?'✅':'⏳'} ${[c.cant,c.marca,c.acab].filter(Boolean).join(' · ')}`).join(' | ')}</span></div>`;})()} 
+          ${(()=>{const bc=(t.cat==='albfac'?getColorsForTaller(t.taller):getTaskColors(t));if(!bc.length)return'';return`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,.4);border-radius:6px;padding:5px 8px;margin-top:5px"><span style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase">🎨 Color:</span> <span style="font-size:11px;color:var(--tx)">${bc.map(c=>`${c.done?'✅':'⏳'} ${[c.cant,c.marca,c.acab].filter(Boolean).join(' · ')}`).join(' | ')}</span></div>`;})()} 
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${creator?`<span style="font-size:11px;color:var(--tx3)">👤 ${creator.name}</span>`:''}
@@ -3456,7 +3457,7 @@ const BCom={
   del(id){UI.confirm('Eliminar tarea','¿Seguro que quieres eliminar esta tarea?',()=>{BT.del(id);UI.toast('Tarea eliminada','in');BCom.render()})},
   _complete(id){UI.confirm('✅ Completar','¿Marcar este color como hecho?',()=>{DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id||'boss'}:t);BCom.render();UI.toast('Marcado como hecho ✅','ok');})},
   colorDone(taskId,colorId){const t=BT.all().find(x=>x.id===taskId);if(!t)return;const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,done:true,doneAt:nowMs()}:c);BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});globalRender();UI.toast('Color hecho ✅','ok');},
-  colorAllDone(taskId){const t=BT.all().find(x=>x.id===taskId);if(!t)return;const name=t.taller||t.text||'este cliente';UI.confirm('🎨 Todos los colores hechos',`¿Confirmas que todos los colores de <strong>${esc(name)}</strong> están completados?`,()=>{const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});globalRender();UI.toast('Todos los colores marcados ✅','ok');});},
+  colorAllDone(taskId){const t=BT.all().find(x=>x.id===taskId);if(!t)return;UI.confirm('🎨 Todos los colores hechos',`¿Confirmas que todos los colores están hechos?`,()=>{const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});globalRender();UI.toast('Todos los colores marcados ✅','ok');});},
   edit(id){BTF.openEdit(id)},
 };
 
