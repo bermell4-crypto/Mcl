@@ -657,7 +657,18 @@ tr:hover td{background:rgba(240,120,40,.025)}
             <button class="btn btn-gh" id="ett-entrega_lectura" onclick="ETF.type('entrega_lectura')" style="flex-direction:column;padding:10px 8px;gap:3px;font-size:12px">📦🎨<span>Entrega+Lectura</span></button>
           </div>
         </div>
-        <div class="fg">
+        <!-- COLOR ACABADO - ANTES del textarea -->
+        <div id="et-color-toggle-row" style="display:none;margin-top:2px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px;user-select:none">
+            <input type="checkbox" id="et-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="ETF._toggleColor(this.checked)">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c084fc">🎨 Tiene color acabado</span>
+          </label>
+        </div>
+        <div id="et-color-section" style="display:none;background:rgba(160,80,240,.07);border:1px solid rgba(160,80,240,.3);border-radius:8px;padding:10px;margin-top:2px">
+          <div id="et-color-items"></div>
+          <button class="btn btn-gh btn-sm" style="width:100%;margin-top:4px;color:#c084fc;border-color:rgba(160,80,240,.4)" onclick="ETF._addColorItem()">＋ Añadir otro color</button>
+        </div>
+        <div class="fg" style="margin-top:6px">
           <label class="fl">Pedido / Notas</label>
           <textarea id="et-campo-txt" class="fc" rows="4" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:none"></textarea>
         </div>
@@ -667,6 +678,19 @@ tr:hover td{background:rgba(240,120,40,.025)}
         <div class="fg">
           <label class="fl">Taller / Cliente <span style="color:var(--er)">*</span></label>
           <input id="et-ofic-taller" class="fc" placeholder="Nombre del taller o cliente..." autocomplete="off">
+        </div>
+        <!-- COLOR ACABADO - oficina (same IDs, toggle section shared but only one visible at a time) -->
+        <div id="et-ofic-color-row" style="display:none;margin-top:2px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px;user-select:none">
+            <input type="checkbox" id="et-ofic-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="ETF._toggleOficColor(this.checked)">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c084fc">🎨 Tiene color acabado</span>
+          </label>
+        </div>
+        <div id="et-ofic-color-section" style="display:none;background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:12px;margin-top:2px">
+          <div style="font-size:11px;font-weight:700;color:#c084fc;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">🎨 Datos de Color Acabado</div>
+          <div class="fg" style="margin-bottom:8px"><label class="fl">Cantidad</label><input id="et-ofic-color-cant" class="fc" autocomplete="off"></div>
+          <div class="fg" style="margin-bottom:8px"><label class="fl">Marca y Código</label><input id="et-ofic-color-marca" class="fc" autocomplete="off"></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Acabado</label><input id="et-ofic-color-acab" class="fc" autocomplete="off"></div>
         </div>
       </div>
 
@@ -1011,6 +1035,40 @@ const RT={
   },
 };
 
+/* ─── COLOR HELPERS ─── */
+// Returns normalized array of color items, migrating old flat fields if needed
+const getTaskColors=t=>{
+  if(t._colors&&t._colors.length)return t._colors;
+  if(t._colorCant||t._colorMarca||t._colorAcab)
+    return[{id:(t.id||'x')+'c0',cant:t._colorCant||'',marca:t._colorMarca||'',acab:t._colorAcab||'',done:false,doneAt:null}];
+  return[];
+};
+const hasPendingColors=t=>{const cs=getTaskColors(t);return cs.length>0&&cs.some(c=>!c.done);};
+const hasAnyColors=t=>getTaskColors(t).length>0;
+// Returns all colors from ALL campo tasks for same taller (for albfac cross-reference)
+const getColorsForTaller=taller=>{
+  if(!taller)return[];
+  return BT.all()
+    .filter(t=>t.cat==='campo'&&(t.taller||'').toLowerCase()===taller.toLowerCase())
+    .flatMap(t=>getTaskColors(t));
+};
+// Refresh every currently visible view after any data change
+const globalRender=()=>{
+  try{
+    const ve=document.getElementById('ve');
+    const vb=document.getElementById('vb');
+    if(ve&&!ve.classList.contains('hidden')){
+      const ae=document.querySelector('[data-et].active');
+      if(ae)({fichar:()=>EF.render(),ruta:()=>ER.render(),equipo:()=>EQ.render(),tareas:()=>ET.render(),mpp:()=>EMPP.render()}[ae.dataset.et]||function(){})();
+      else{try{ET.render();}catch(e){}}
+    }
+    if(vb&&!vb.classList.contains('hidden')){
+      const ab=document.querySelector('[data-bt].active');
+      if(ab)({dash:()=>BD.render(),rutas:()=>BR.render(),verif:()=>BV.render(),tareas:()=>BCom.render(),talleres:()=>BT_MGR.render()}[ab.dataset.bt]||function(){})();
+    }
+  }catch(e){}
+};
+
 /* Shared Task List */
 const BT={
   all:()=>DB.all(K.BT).sort((a,b)=>b.ca-a.ca),
@@ -1020,11 +1078,19 @@ const BT={
   seenAll:()=>DB.map(K.BT,t=>({...t,seen:true})),
   seen:eid=>DB.map(K.BT,t=>t.eid===eid?{...t,seen:true}:t),
   setSt:(id,st)=>DB.map(K.BT,t=>t.id===id?{...t,st,doneAt:st==='comp'?nowMs():t.doneAt,doneBy:st==='comp'?App.emp?.id:t.doneBy}:t),
-  add:(text,notes,pri,createdBy,cat,taller,actType)=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',priDate:today(),st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||''}),
+  add:(text,notes,pri,createdBy,cat,taller,actType,colors=[])=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',priDate:today(),st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||'',_colors:colors||[],_colorCant:'',_colorMarca:'',_colorAcab:''}),
   del:id=>DB.set(K.BT,DB.all(K.BT).filter(t=>t.id!==id)),
   update:(id,fields)=>DB.map(K.BT,t=>t.id===id?{...t,...fields}:t),
-  // Auto-delete tasks completed more than 24h ago
-  purgeOld:()=>{const cut=nowMs()-86400000;const before=DB.all(K.BT).length;DB.set(K.BT,DB.all(K.BT).filter(t=>!(t.st==='comp'&&t.doneAt&&t.doneAt<cut)));},
+  // Auto-delete: color tasks keep 30 days, others 24h
+  purgeOld:()=>{
+    const cut24h=nowMs()-86400000;
+    const cut30d=nowMs()-30*86400000;
+    DB.set(K.BT,DB.all(K.BT).filter(t=>{
+      if(t.st!=='comp'||!t.doneAt)return true;
+      if(hasAnyColors(t))return t.doneAt>=cut30d;
+      return t.doneAt>=cut24h;
+    }));
+  },
   assignToRoute:(id,eid,type,taller,notes,est,mppNote,mppTaskId)=>{
     DB.map(K.BT,t=>t.id===id?{...t,eid,routeEid:eid,routeType:type,routeTaller:taller,st:'en_proc'}:t);
     RT.addStop(eid,{taller,type,est:est||'',note:notes||'',_taskId:id,_mppNote:mppNote||'',_mppTaskId:mppTaskId||null});
@@ -1733,6 +1799,20 @@ const DP={
       const d=new Date(task.ca);
       body+=`<div style="font-size:12px;color:var(--tx3);padding:6px 0 16px">📅 Creada el ${d.getDate()}/${d.getMonth()+1} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}${task.createdBy?' por '+(getEmp(task.createdBy)?.name||task.createdBy):''}</div>`;
     }
+    const dpColors=task.cat==='albfac'?getColorsForTaller(task.taller):getTaskColors(task);
+    if(dpColors.length){
+      body+=`<div style="background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,.45);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#c084fc;margin-bottom:10px">🎨 Color Acabado</div>
+        ${dpColors.map(c=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:18px;flex-shrink:0">${c.done?'✅':'⏳'}</span>
+          <div style="flex:1">
+            ${c.cant?`<div style="font-size:14px;color:var(--tx)"><span style="font-size:11px;color:#c084fc;font-weight:700;margin-right:6px">CANT.</span>${esc(c.cant)}</div>`:''}
+            ${c.marca?`<div style="font-size:14px;color:var(--tx)"><span style="font-size:11px;color:#c084fc;font-weight:700;margin-right:6px">MARCA</span>${esc(c.marca)}</div>`:''}
+            ${c.acab?`<div style="font-size:14px;color:var(--tx)"><span style="font-size:11px;color:#c084fc;font-weight:700;margin-right:6px">ACAB.</span>${esc(c.acab)}</div>`:''}
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }
     document.getElementById('dp-body').innerHTML=body;
 
     const alreadyInRoute=!!task.routeEid,isMine=task.routeEid===emp?.id;
@@ -1940,7 +2020,9 @@ const SRM={
     // Record route start with GPS
     const rt=RT.today(emp.id);
     const save=(lat,lng)=>{
-      RT.save(emp.id,today(),{...rt,routeStarted:true,routeStartedAt:nowMs(),routeStartLat:lat,routeStartLng:lng});
+      const sessions=[...(rt.routeSessions||[])];
+      sessions.push({startAt:nowMs(),startLat:lat,startLng:lng,endAt:null,endLat:null,endLng:null});
+      RT.save(emp.id,today(),{...rt,routeSessions:sessions,routeStarted:true,routeEnded:false,routeStartedAt:nowMs(),routeStartLat:lat,routeStartLng:lng});
       UI.toast('🚐 ¡Ruta iniciada!','ok');
       ER.render();
       // Store in LC for boss to see
@@ -1962,7 +2044,11 @@ const SRM={
     UI.confirm('🏁 Fin de ruta','¿Confirmar fin de ruta?',()=>{
       const rt=RT.today(emp.id);
       const save=(lat,lng)=>{
-        RT.save(emp.id,today(),{...rt,routeEnded:true,routeEndedAt:nowMs(),routeEndLat:lat,routeEndLng:lng});
+        const sess=[...(rt.routeSessions||[])];
+        if(sess.length&&!sess[sess.length-1].endAt){
+          sess[sess.length-1]={...sess[sess.length-1],endAt:nowMs(),endLat:lat,endLng:lng};
+        }
+        RT.save(emp.id,today(),{...rt,routeSessions:sess,routeEnded:true,routeEndedAt:nowMs(),routeEndLat:lat,routeEndLng:lng});
         // Store in LC for boss
         const locs=LS.g(K.LC)||{};
         if(!locs[emp.id])locs[emp.id]={};
@@ -2048,6 +2134,19 @@ const ER={
             ${s.done?`<span class="badge b-ok" style="font-size:10px;flex-shrink:0">✓ ${tStr(s.doneAt)}</span>`:''}
           </div>
           ${inlineNote}
+          ${(()=>{
+            const tk=BT.all().find(bt=>bt.id===s._taskId);
+            const allCols=tk?getTaskColors(tk):[];
+            if(!allCols.length)return'';
+            const allDoneR=allCols.every(c=>c.done);
+            return'<div style="margin:0 13px 8px;background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,'+(allDoneR?'.25':'.45')+'};border-radius:8px;padding:8px 12px">'.replace('}','')
+              +'<div style="font-size:10px;font-weight:900;color:#c084fc;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.07em;margin-bottom:5px">🎨 COLOR ACABADO'+(allDoneR?' ✅':'')+'</div>'
+              +allCols.map(c=>'<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:3px">'
+                +'<span style="font-size:14px">'+(c.done?'✅':'⏳')+'</span>'
+                +'<span style="color:'+(c.done?'rgba(233,213,255,.55)':'#e9d5ff')+'">'+esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))+'</span>'
+                +'</div>').join('')
+              +'</div>';
+          })()}
           ${s.postponedFrom?`<div style="padding:0 13px 6px;font-size:11px;color:var(--tx3)">📅 Pospuesta desde ${new Date(s.postponedFrom+'T00:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})}</div>`:''}
           ${!s.done?`
           <div style="display:flex;align-items:center;gap:6px;padding:0 13px 11px;flex-wrap:nowrap">
@@ -2073,13 +2172,18 @@ const ER={
 
     const postponed=stops.filter(s=>s.postponedFrom);
     // Route start/end buttons
+    const sessions=rt.routeSessions||[];
+    const activeSession=sessions.length>0&&!sessions[sessions.length-1].endAt;
+    const pastSessions=sessions.filter(s=>s.endAt);
     const routeBtns=stops.length>0?`
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        ${!routeStarted?`<button class="btn btn-ok f1" onclick="SRM.open()" style="gap:6px">🚐 Iniciar ruta</button>`
-          :`<div class="btn btn-gh f1" style="pointer-events:none;justify-content:center;opacity:.7;font-size:13px">✅ Ruta iniciada ${rt.routeStartedAt?tStr(rt.routeStartedAt):''}</div>`}
-        ${routeStarted&&!routeEnded?`<button class="btn btn-er btn-sm" onclick="SRM.end()" style="flex-shrink:0">🏁 Fin de ruta</button>`:
-          routeEnded?`<div class="btn btn-gh btn-sm" style="pointer-events:none;opacity:.7">🏁 ${tStr(rt.routeEndedAt)}</div>`:''}
-      </div>`:'';
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        ${!routeStarted||routeEnded
+          ?`<button class="btn btn-ok f1" onclick="SRM.open()" style="gap:6px">${routeEnded?'🚐 Nueva ruta':'🚐 Iniciar ruta'}</button>`
+          :`<div class="btn btn-gh f1" style="pointer-events:none;justify-content:center;opacity:.8;font-size:13px">🚐 Ruta en curso desde ${rt.routeStartedAt?tStr(rt.routeStartedAt):''}</div>`}
+        ${activeSession?`<button class="btn btn-er btn-sm" onclick="SRM.end()" style="flex-shrink:0">🏁 Fin de ruta</button>`:''}
+      </div>
+      ${sessions.length>0?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${sessions.map((s,i)=>`<span style="font-size:11px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.07);border:1px solid ${s.endAt?'rgba(30,201,138,.35)':'rgba(255,184,40,.35)'};color:${s.endAt?'var(--ok)':'var(--wn)'}">Ruta ${i+1}: ${tStr(s.startAt)}${s.endAt?' → '+tStr(s.endAt):' ● en curso'}</span>`).join('')}</div>`:''}
+    `:'';
 
     document.getElementById('t-ruta').innerHTML=`
       <div class="sh"><div class="st">Mi Ruta de Hoy</div>
@@ -2516,8 +2620,9 @@ const ET={
       `<button class="btn btn-sm ${ET._filter===null?'btn-pri':'btn-gh'}" onclick="ET.filter(null)">Todas</button>`+
       `<button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Pedidos</button>`+
       `<button class="btn btn-sm ${ET._filter==='albfac'?'btn-pri':'btn-gh'}" onclick="ET.filter('albfac')">🧾 Alb. y Fact.</button>`+
-      `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`+
-      `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`;
+      `<button class="btn btn-sm ${ET._filter==='color'?'btn-pri':'btn-gh'}" onclick="ET.filter('color')" style="${ET._filter==='color'?'':''}">🎨 Color</button>`+
+      `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`+
+      `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`;
   },
   _renderSort(){
     const el=document.getElementById('et-sort');if(!el)return;
@@ -2536,10 +2641,21 @@ const ET={
     const q=ET._search.toLowerCase().trim();
     const priOrder={alta:0,media:1,baja:2};
     let all=BT.all().filter(t=>{
+      // COLOR TAB: evaluated first – never blocked by routeEid or comp status
+      if(ET._filter==='color'){
+        if(!hasAnyColors(t)||t.cat!=='campo')return false;
+        // Hide only if ALL colors are done AND not showing completed
+        if(getTaskColors(t).every(c=>c.done)&&!ET._showComp)return false;
+        if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
+        return true; // bypass all other checks – color tab is independent
+      }
+      // All other tabs
       if(t.cat==='campo'&&t.routeEid)return false;
       if(t._mpp&&t.routeEid)return false;
       if(!ET._showComp&&t.st==='comp')return false;
-      if(ET._filter&&t.cat!==ET._filter)return false;
+      if(ET._filter){
+        if(t.cat!==ET._filter)return false;
+      }
       if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
       return true;
     });
@@ -2566,8 +2682,13 @@ const ET={
       let inlineNotes='';
       const {pedido:notePedido,mpp:noteMpp}=MPP.split(t.notes||'');
       const isMppTask=MPP.isMpp(t);
+      // Strip old "date — docLabel" prefix from albfac notes (legacy data)
+      const cleanAlbfacNotes=n=>{if(!n)return n;return n.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim();};
+      const displayNotes=(t.cat==='albfac')?cleanAlbfacNotes(t.notes):t.notes;
+      const {pedido:displayPedido}=MPP.split(displayNotes||'');
       if(t.notes){
-        const parts=DP._parseNotes(t.notes);
+        const notesForRender=displayNotes||'';
+        const parts=DP._parseNotes(notesForRender);
         if(parts){
           inlineNotes=`<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
             ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
@@ -2575,8 +2696,8 @@ const ET={
               <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(p.text)}</div>
             </div>`).join('')}
           </div>`;
-        }else if(notePedido&&!isMppTask){
-          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${esc(notePedido)}</div>`;
+        }else if(displayPedido&&!isMppTask){
+          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${esc(displayPedido)}</div>`;
         }
         if(noteMpp||isMppTask){
           const mppText=isMppTask?MPP.split(t.notes).mpp:noteMpp;
@@ -2587,6 +2708,19 @@ const ET={
         }
       }
       const mppBadge=(isMppTask||noteMpp)?`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,120,0,.18);border:1px solid rgba(255,140,0,.5);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.05em;margin-left:4px">⚠️ MAT. PENDIENTE</span>`:'';
+      // Color inline block – campo uses own colors, albfac looks up from campo tasks of same taller
+      const tColors=t.cat==='albfac'?getColorsForTaller(t.taller):getTaskColors(t);
+      let colorInline='';
+      if(tColors.length&&(t.cat==='campo'||t.cat==='albfac')){
+        const allDone=tColors.every(c=>c.done);
+        colorInline=`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,${allDone?'.2':'.4'});border-radius:6px;padding:7px 10px;margin-bottom:6px${allDone?';opacity:.55':''}">
+          <div style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">🎨 Color Acabado</div>
+          ${tColors.map(c=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span style="font-size:14px;flex-shrink:0">${c.done?'✅':'⏳'}</span>
+            <span style="font-size:12px;color:var(--tx)">${esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))}</span>
+          </div>`).join('')}
+        </div>`;
+      }
       return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%);cursor:pointer" onclick="DP.openTask('${t.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -2601,7 +2735,8 @@ const ET={
           ${mppBadge}
         </div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'||(t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.text)}</div>`:''}
+          ${(t.cat!=='campo'&&t.cat!=='albfac'||(t.cat==='campo'&&t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.text)}</div>`:''}
+          ${colorInline}
           ${inlineNotes}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
@@ -2623,9 +2758,71 @@ const ET={
         </div>
       </div>`;
     };
+    const colorCard=t=>{
+      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80'}[t.pri||'media']||'#facc15';
+      const caDate=t.ca?new Date(t.ca):null;
+      const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1}`:'';
+      const colors=getTaskColors(t);
+      const allDone=colors.length>0&&colors.every(c=>c.done);
+      const someDone=colors.some(c=>c.done)&&!allDone;
+      return`<div class="bt" style="border-left:3px solid rgba(160,80,240,.6);background:linear-gradient(135deg,rgba(160,80,240,.1) 0%,transparent 60%)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
+            ${allDone?`<span style="font-size:13px">✅</span>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${caStr?`<span style="font-size:11px;color:var(--tx3)">📅 ${caStr}</span>`:''}
+            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴 Alta',media:'🟡 Media',baja:'🟢 Baja'}[t.pri||'media']||'🟡'}</span>
+          </div>
+        </div>
+        ${colors.map(c=>`
+          <div style="background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+            <div style="display:flex;align-items:flex-start;gap:8px">
+              <div style="flex:1;min-width:0">
+                ${c.cant?`<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Cant.</span><span style="font-size:13px;color:var(--tx)">${esc(c.cant)}</span></div>`:''}
+                ${c.marca?`<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Marca</span><span style="font-size:13px;color:var(--tx)">${esc(c.marca)}</span></div>`:''}
+                ${c.acab?`<div style="display:flex;gap:6px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Acabado</span><span style="font-size:13px;color:var(--tx)">${esc(c.acab)}</span></div>`:''}
+              </div>
+              <div style="flex-shrink:0;padding-top:2px">
+                ${c.done
+                  ?`<span style="font-size:22px;line-height:1">✅</span>`
+                  :`<button class="btn btn-ok btn-sm" style="padding:5px 10px;font-size:12px;white-space:nowrap" onclick="event.stopPropagation();ET.colorDone('${t.id}','${c.id}')">✅ Hecho</button>`
+                }
+              </div>
+            </div>
+          </div>`).join('')}
+        ${!allDone?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:8px;font-weight:700" onclick="event.stopPropagation();ET.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
+        <div style="display:flex;gap:6px;margin-top:2px">
+          <button class="btn btn-sec btn-sm btn-ic" onclick="ET.edit('${t.id}')" title="Editar">✏️</button>
+          <button class="btn btn-sm btn-ic" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171" onclick="ET.del('${t.id}')" title="Eliminar">🗑</button>
+        </div>
+      </div>`;
+    };
     el.innerHTML=(all.length===0
-      ?`<div class="es"><div class="ei">${q?'🔍':'📌'}</div><div class="et">${q?'Sin resultados':'Sin tareas pendientes'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
-      :all.map(th).join(''))+toggleBtn;
+      ?`<div class="es"><div class="ei">${q?'🔍':ET._filter==='color'?'🎨':'📌'}</div><div class="et">${q?'Sin resultados':ET._filter==='color'?'Sin colores pendientes':'Sin tareas pendientes'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
+      :all.map(ET._filter==='color'?colorCard:th).join(''))+toggleBtn;
+  },
+  colorDone(taskId,colorId){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,done:true,doneAt:nowMs()}:c);
+    BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
+    globalRender();
+    UI.toast('Color marcado como hecho ✅','ok');
+  },
+  colorAllDone(taskId){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const name=t.taller||t.text||'este cliente';
+    UI.confirm(
+      '🎨 Todos los colores hechos',
+      `¿Confirmas que todos los colores de <strong>${esc(name)}</strong> están completados?`,
+      ()=>{
+        const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));
+        BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
+        globalRender();
+        UI.toast('Todos los colores marcados como hechos ✅','ok');
+      }
+    );
   },
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
   search(val){ET._search=val;ET._renderList()},
@@ -3032,12 +3229,30 @@ const BR={
       <div class="sh"><div class="st">Rutas del Equipo</div></div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">${empBtns}</div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${dateBtns}</div>
-      ${emp?`<div class="card mb12" style="padding:12px;display:flex;align-items:center;gap:12px">
-        <div style="width:36px;height:36px;border-radius:50%;background:${emp.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">${emp.av}</div>
-        <div style="flex:1">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase">${emp.name} · ${date===today()?'Hoy':dayNm(date)}</div>
-          <div style="font-size:12px;color:var(--tx3)">${dn} de ${stops.length} paradas completadas${trEntry?.ci?` · Entrada ${tStr(trEntry.ci)}${trEntry.co?` · Salida ${tStr(trEntry.co)}`:' · En ruta'}`:' · Sin fichar'}</div>
+      ${emp?`<div class="card mb12" style="padding:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:50%;background:${emp.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">${emp.av}</div>
+          <div style="flex:1">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase">${emp.name} · ${date===today()?'Hoy':dayNm(date)}</div>
+            <div style="font-size:12px;color:var(--tx3)">${dn} de ${stops.length} paradas completadas${trEntry?.ci?` · Entrada ${tStr(trEntry.ci)}${trEntry.co?` · Salida ${tStr(trEntry.co)}`:' · En ruta'}`:' · Sin fichar'}</div>
+          </div>
         </div>
+        ${(()=>{
+          const s=rt.routeSessions||[];
+          const all=s.length?s:(rt.routeStartedAt?[{startAt:rt.routeStartedAt,endAt:rt.routeEndedAt||null}]:[]);
+          if(!all.length)return'<div style="font-size:11px;color:var(--tx3);padding:4px 0">Sin rutas registradas hoy</div>';
+          return all.map((r,i)=>{
+            const dur=r.endAt?Math.round((r.endAt-r.startAt)/60000):null;
+            return`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--bdr)">
+              <span style="font-size:18px">${r.endAt?'🏁':'🚐'}</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--tx)">Ruta ${i+1}</div>
+                <div style="font-size:11px;color:var(--tx3)">Inicio: ${r.startAt?tStr(r.startAt):'--'}${r.endAt?' · Fin: '+tStr(r.endAt):''}</div>
+              </div>
+              ${r.endAt?`<span style="font-size:11px;font-weight:700;color:var(--ok);background:rgba(30,201,138,.15);padding:2px 7px;border-radius:5px">${dur}min</span>`:'<span style="font-size:11px;font-weight:700;color:var(--wn);background:rgba(255,184,40,.15);padding:2px 7px;border-radius:5px">En curso</span>'}
+            </div>`;
+          }).join('');
+        })()}
       </div>`:''}
       <div id="boss-route-map-wrap"><div id="boss-map"></div></div>
       ${stopsHtml}
@@ -3142,10 +3357,55 @@ const BV={
 
 /* ─── BOSS COMUNICADOS ─── */
 const BCom={
-  _filter:null,
+  _filter:null,_showCompColor:false,
   filter(cat){BCom._filter=cat;BCom.render()},
   render(){
-    const all=BT.all().filter(t=>!BCom._filter||t.cat===BCom._filter);
+    const all=BT.all().filter(t=>{
+      if(BCom._filter==='color'){
+        if(!hasAnyColors(t)||t.cat!=='campo')return false;
+        if(t.st==='comp'&&!BCom._showCompColor&&getTaskColors(t).every(c=>c.done))return false;
+        return true;
+      }
+      if(BCom._filter) return t.cat===BCom._filter;
+      return true;
+    });
+    const colorCard=t=>{
+      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80'}[t.pri||'media']||'#facc15';
+      const caDate=t.ca?new Date(t.ca):null;
+      const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1}`:'';
+      const bColors=getTaskColors(t);
+      const allDone=bColors.length>0&&bColors.every(c=>c.done);
+      return`<div class="bt" style="border-left:3px solid rgba(160,80,240,.6);background:linear-gradient(135deg,rgba(160,80,240,.1) 0%,transparent 60%)${allDone?';opacity:.65':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${caStr?`<span style="font-size:11px;color:var(--tx3)">📅 ${caStr}</span>`:''}
+            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴',media:'🟡',baja:'🟢'}[t.pri||'media']||'🟡'}</span>
+          </div>
+        </div>
+        ${bColors.map(c=>`
+          <div style="background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+            <div style="display:flex;align-items:flex-start;gap:8px">
+              <div style="flex:1;min-width:0">
+                ${c.cant?`<div style="display:flex;gap:6px;margin-bottom:2px"><span style="font-size:10px;font-weight:700;color:#c084fc;min-width:50px;flex-shrink:0;text-transform:uppercase">Cant.</span><span style="font-size:12px;color:var(--tx)">${esc(c.cant)}</span></div>`:''}
+                ${c.marca?`<div style="display:flex;gap:6px;margin-bottom:2px"><span style="font-size:10px;font-weight:700;color:#c084fc;min-width:50px;flex-shrink:0;text-transform:uppercase">Marca</span><span style="font-size:12px;color:var(--tx)">${esc(c.marca)}</span></div>`:''}
+                ${c.acab?`<div style="display:flex;gap:6px"><span style="font-size:10px;font-weight:700;color:#c084fc;min-width:50px;flex-shrink:0;text-transform:uppercase">Acab.</span><span style="font-size:12px;color:var(--tx)">${esc(c.acab)}</span></div>`:''}
+              </div>
+              <div style="flex-shrink:0">
+                ${c.done
+                  ?`<span style="font-size:18px">✅</span>`
+                  :`<button class="btn btn-ok btn-sm" style="padding:4px 8px;font-size:11px" onclick="BCom.colorDone('${t.id}','${c.id}')">✅ Hecho</button>`
+                }
+              </div>
+            </div>
+          </div>`).join('')}
+        ${!allDone?`<button class="btn btn-ok btn-sm" style="width:100%;margin-bottom:6px;padding:7px;font-weight:700" onclick="BCom.colorAllDone('${t.id}')">✅ Todos los colores están hechos</button>`:''}
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn btn-sec btn-sm btn-ic" onclick="BCom.edit('${t.id}')" title="Editar">✏️</button>
+          <button class="btn btn-gh btn-sm btn-ic" onclick="BCom.del('${t.id}')" title="Eliminar">🗑</button>
+        </div>
+      </div>`;
+    };
     const th=t=>{
       const creator=getEmp(t.createdBy);
       const assignedEmp=t.routeEid?getEmp(t.routeEid):null;
@@ -3160,6 +3420,7 @@ const BCom={
         <div style="margin-bottom:7px">
           ${t.cat!=='campo'?`<div style="font-size:13px;color:var(--tx);font-weight:600">${esc(t.text)}</div>`:''}
           ${t.notes?`<div style="font-size:11px;color:var(--tx3);margin-top:1px">${esc(t.notes)}</div>`:''}
+          ${(()=>{const bc=(t.cat==='albfac'?getColorsForTaller(t.taller):getTaskColors(t));if(!bc.length)return'';const ad=bc.every(c=>c.done);return`<div style="background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,${ad?'.15':'.4'});border-radius:6px;padding:5px 8px;margin-top:5px${ad?';opacity:.5':''}"><span style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase">🎨 Color:</span> <span style="font-size:11px;color:var(--tx)">${bc.map(c=>`${c.done?'✅':'⏳'} ${[c.cant,c.marca,c.acab].filter(Boolean).join(' · ')}`).join(' | ')}</span></div>`;})()} 
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
             <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
             ${creator?`<span style="font-size:11px;color:var(--tx3)">👤 ${creator.name}</span>`:''}
@@ -3181,13 +3442,21 @@ const BCom={
       <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
         <button class="btn btn-sm ${BCom._filter===null?'btn-pri':'btn-gh'}" onclick="BCom.filter(null)">Todas</button>
         <button class="btn btn-sm ${BCom._filter==='campo'?'btn-pri':'btn-gh'}" onclick="BCom.filter('campo')">🏭 Taller</button>
+        <button class="btn btn-sm ${BCom._filter==='color'?'btn-pri':'btn-gh'}" onclick="BCom.filter('color')">🎨 Color</button>
         <button class="btn btn-sm ${BCom._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="BCom.filter('almacen')">📦 Almacén</button>
         <button class="btn btn-sm ${BCom._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="BCom.filter('oficina')">💼 Oficina</button>
       </div>
-      ${all.length===0?'<div class="es"><div class="ei">📌</div><div class="et">Sin tareas</div></div>':''}
-      ${all.map(th).join('')}`;
+      ${BCom._filter==='color'?`<div style="text-align:center;margin-bottom:8px">
+        <button class="btn btn-gh btn-sm" onclick="BCom._showCompColor=!BCom._showCompColor;BCom.render()">
+          ${BCom._showCompColor?'🙈 Ocultar hechos':'👁 Ver hechos'}
+        </button></div>`:''}
+      ${all.length===0?`<div class="es"><div class="ei">${BCom._filter==='color'?'🎨':'📌'}</div><div class="et">${BCom._filter==='color'?'Sin tareas con color acabado':'Sin tareas'}</div></div>`:''}
+      ${all.map(BCom._filter==='color'?colorCard:th).join('')}`;
   },
   del(id){UI.confirm('Eliminar tarea','¿Seguro que quieres eliminar esta tarea?',()=>{BT.del(id);UI.toast('Tarea eliminada','in');BCom.render()})},
+  _complete(id){UI.confirm('✅ Completar','¿Marcar este color como hecho?',()=>{DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id||'boss'}:t);BCom.render();UI.toast('Marcado como hecho ✅','ok');})},
+  colorDone(taskId,colorId){const t=BT.all().find(x=>x.id===taskId);if(!t)return;const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,done:true,doneAt:nowMs()}:c);BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});globalRender();UI.toast('Color hecho ✅','ok');},
+  colorAllDone(taskId){const t=BT.all().find(x=>x.id===taskId);if(!t)return;const name=t.taller||t.text||'este cliente';UI.confirm('🎨 Todos los colores hechos',`¿Confirmas que todos los colores de <strong>${esc(name)}</strong> están completados?`,()=>{const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});globalRender();UI.toast('Todos los colores marcados ✅','ok');});},
   edit(id){BTF.openEdit(id)},
 };
 
@@ -3223,7 +3492,18 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off"></textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta</option><option value="media" selected>🟡 Media</option><option value="baja">🟢 Baja</option></select></div>`;
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta</option><option value="media" selected>🟡 Media</option><option value="baja">🟢 Baja</option></select></div>
+      <div id="bt-color-toggle-row" style="display:none;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
+          <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c084fc">🎨 Color Acabado</span>
+        </label>
+      </div>
+      <div id="bt-color-section" style="display:none;background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:12px;margin-top:2px">
+        <div class="fg" style="margin-bottom:8px"><label class="fl" style="color:#c084fc">Cantidad</label><input id="bt-color-cant" class="fc"  autocomplete="off"></div>
+        <div class="fg" style="margin-bottom:8px"><label class="fl" style="color:#c084fc">Marca y Código</label><input id="bt-color-marca" class="fc"  autocomplete="off"></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl" style="color:#c084fc">Acabado</label><input id="bt-color-acab" class="fc"  autocomplete="off"></div>
+      </div>`;
     UI.sm('bt-modal');
     setTimeout(()=>document.getElementById('btc-campo')?.focus(),300);
   },
@@ -3235,6 +3515,14 @@ const BTF={
     if(sec)sec.style.display=c==='campo'?'block':'none';
     const txtSec=document.getElementById('bt-txt-section');
     if(txtSec)txtSec.style.display=c==='campo'?'none':'block';
+    const btColorRow=document.getElementById('bt-color-toggle-row');
+    if(btColorRow)btColorRow.style.display=(c==='campo'||c==='oficina')?'block':'none';
+    const btColorChk=document.getElementById('bt-color-chk');if(btColorChk)btColorChk.checked=false;
+    const btColorSec=document.getElementById('bt-color-section');if(btColorSec)btColorSec.style.display='none';
+  },
+  _toggleColor(checked){
+    const s=document.getElementById('bt-color-section');
+    if(s)s.style.display=checked?'block':'none';
   },
   type(t){
     BTF._type=t;
@@ -3256,15 +3544,21 @@ const BTF={
       if(!text){UI.toast('Escribe una descripción','wn');return}
     }
     const taller=isCampo?(document.getElementById('bt-taller')?.value?.trim()||''):'';
+    const btColorChk=document.getElementById('bt-color-chk')?.checked;
+    const btColorCant=btColorChk?(document.getElementById('bt-color-cant')?.value?.trim()||''):'';
+    const btColorMarca=btColorChk?(document.getElementById('bt-color-marca')?.value?.trim()||''):'';
+    const btColorAcab=btColorChk?(document.getElementById('bt-color-acab')?.value?.trim()||''):'';
     if(BTF._editId){
-      BT.update(BTF._editId,{text,notes:gv('bt-not'),pri:gv('bt-pri'),cat:BTF._cat,taller,actType:BTF._type||''});
+      const btColors=btColorChk?[{id:uid(),cant:btColorCant,marca:btColorMarca,acab:btColorAcab,done:false,doneAt:null}].filter(c=>c.cant||c.marca||c.acab):[];
+      BT.update(BTF._editId,{text,notes:gv('bt-not'),pri:gv('bt-pri'),cat:BTF._cat,taller,actType:BTF._type||'',_colors:btColors,_colorCant:'',_colorMarca:'',_colorAcab:''});
       BTF._editId=null;
       UI.hm('bt-modal');UI.toast('Tarea actualizada ✅','ok');
     }else{
-      BT.add(text,gv('bt-not'),gv('bt-pri'),'boss',BTF._cat,taller,BTF._type||'');
+      const btColorsNew=btColorChk?[{id:uid(),cant:btColorCant,marca:btColorMarca,acab:btColorAcab,done:false,doneAt:null}].filter(c=>c.cant||c.marca||c.acab):[];
+      BT.add(text,gv('bt-not'),gv('bt-pri'),'boss',BTF._cat,taller,BTF._type||'',btColorsNew);
       UI.hm('bt-modal');UI.toast('Tarea creada ✅','ok');
     }
-    BCom.render();
+    globalRender();
   },
   openEdit(id){
     const t=BT.all().find(x=>x.id===id);if(!t)return;
@@ -3296,7 +3590,18 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section" style="display:${t.cat==='campo'?'none':'block'}"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." value="${esc(t.cat!=='campo'?t.text||'':'')}" autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off">${esc(t.notes||'')}</textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 Baja</option></select></div>`;
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 Baja</option></select></div>
+      <div id="bt-color-toggle-row" style="display:${(t.cat==='campo'||t.cat==='oficina')?'block':'none'};margin-top:4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
+          <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)" ${(t._colorCant||t._colorMarca||t._colorAcab)?'checked':''}>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c084fc">🎨 Color Acabado</span>
+        </label>
+      </div>
+      <div id="bt-color-section" style="display:${(t._colorCant||t._colorMarca||t._colorAcab)?'block':'none'};background:rgba(160,80,240,.1);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:12px;margin-top:2px">
+        <div class="fg" style="margin-bottom:8px"><label class="fl" style="color:#c084fc">Cantidad</label><input id="bt-color-cant" class="fc"  autocomplete="off" value="${esc(t._colorCant||'')}"></div>
+        <div class="fg" style="margin-bottom:8px"><label class="fl" style="color:#c084fc">Marca y Código</label><input id="bt-color-marca" class="fc"  autocomplete="off" value="${esc(t._colorMarca||'')}"></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl" style="color:#c084fc">Acabado</label><input id="bt-color-acab" class="fc"  autocomplete="off" value="${esc(t._colorAcab||'')}"></div>
+      </div>`;
     UI.sm('bt-modal');
   },
   _editId:null,
@@ -3407,8 +3712,8 @@ const ATR={
       const docLabel={albaran:'📄 Albarán',albfac:'📄🧾 Albarán + Factura',contado:'💵 Contado'}[docVal]||docVal;
       const now2=new Date();
       const dateStr2=`${now2.getDate()}/${now2.getMonth()+1}/${now2.getFullYear()}`;
-      // Build this pedido's material block (without pending)
-      const pedidoBlock=`${dateStr2} — ${docLabel}\n${combinedNotes||''}`.trim();
+      // Build this pedido's material block — date only as separator, docTipo is stored separately
+      const pedidoBlock=combinedNotes?`[${dateStr2}]\n${combinedNotes}`.trim():dateStr2;
       const existing=BT.all().find(t=>
         t.cat==='albfac'&&t.st!=='comp'&&
         (t.taller||'').toLowerCase()===taller.toLowerCase()&&
@@ -3538,7 +3843,7 @@ const TMPL={
 
 /* ─── EMPLOYEE TASK FORM ─── */
 const ETF={
-  _cat:null,_type:null,
+  _cat:null,_type:null,_editId:null,_colorItems:[],
   open(){
     ETF._cat=null;ETF._type=null;ETF._editId=null;
     const modalTitle=document.querySelector('#etask-modal .mt');if(modalTitle)modalTitle.textContent='📝 Nueva Tarea';
@@ -3548,20 +3853,31 @@ const ETF={
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value='media';
     const sec=document.getElementById('et-taller-section');if(sec)sec.style.display='none';
     const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display='none';
+    ETF._resetColor();
     UI.sm('etask-modal');
-    // Pre-select campo (taller) by default
     setTimeout(()=>ETF.cat('campo'),50);
+  },
+  _resetColor(){
+    ETF._colorItems=[{id:uid(),cant:'',marca:'',acab:''}];
+    ['et-color-chk','et-ofic-color-chk'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+    ['et-color-section','et-ofic-color-section'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+    ['et-color-toggle-row','et-ofic-color-row'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   },
   cat(c){
     ETF._cat=c;ETF._type=null;
     ['campo','almacen','oficina'].forEach(x=>{const b=document.getElementById('etc-'+x);if(b){b.classList.toggle('btn-pri',x===c);b.classList.toggle('btn-gh',x!==c)}});
     ['visita','lectura','entrega','entrega_lectura'].forEach(t=>{const b=document.getElementById('ett-'+t);if(b){b.classList.remove('btn-pri');b.classList.add('btn-gh')}});
-    const sec=document.getElementById('et-taller-section');
-    if(sec)sec.style.display=c==='campo'?'block':'none';
-    const ofSec=document.getElementById('et-ofic-taller-section');
-    if(ofSec)ofSec.style.display=c==='oficina'?'block':'none';
-    const txtSec=document.getElementById('et-txt-section');
-    if(txtSec)txtSec.style.display=c==='campo'?'none':'block';
+    const sec=document.getElementById('et-taller-section');if(sec)sec.style.display=c==='campo'?'block':'none';
+    const ofSec=document.getElementById('et-ofic-taller-section');if(ofSec)ofSec.style.display=c==='oficina'?'block':'none';
+    const txtSec=document.getElementById('et-txt-section');if(txtSec)txtSec.style.display=c==='campo'?'none':'block';
+    const colorRow=document.getElementById('et-color-toggle-row');
+    if(colorRow)colorRow.style.display=c==='campo'?'block':'none';
+    const colorChk=document.getElementById('et-color-chk');if(colorChk)colorChk.checked=false;
+    const colorSec=document.getElementById('et-color-section');if(colorSec)colorSec.style.display='none';
+    const oficColorRow=document.getElementById('et-ofic-color-row');
+    if(oficColorRow)oficColorRow.style.display=c==='oficina'?'block':'none';
+    const oficColorChk=document.getElementById('et-ofic-color-chk');if(oficColorChk)oficColorChk.checked=false;
+    const oficColorSec=document.getElementById('et-ofic-color-section');if(oficColorSec)oficColorSec.style.display='none';
     if(c==='campo')ETF._sugg('');
   },
   type(t){
@@ -3571,9 +3887,67 @@ const ETF={
   _sugg(v=''){
     const c=document.getElementById('et-suggest');if(!c)return;
     const fl=getClients().filter(cl=>!v||cl.n.toLowerCase().includes(v.toLowerCase())).slice(0,6);
-    c.innerHTML=fl.map(cl=>`<button class="btn btn-gh btn-sm" style="font-size:11px;padding:3px 8px;text-transform:none;letter-spacing:0" onclick="document.getElementById('et-taller').value='${cl.n.replace(/'/,"\\'")}';document.getElementById('et-suggest').innerHTML='';ETF._checkAddr('${cl.n.replace(/'/,"\\'")}')">📍 ${cl.n}</button>`).join('');
-    // also check current value
+    c.innerHTML=fl.map(cl=>`<button class="btn btn-gh btn-sm" style="font-size:11px;padding:3px 8px;text-transform:none;letter-spacing:0" onclick="document.getElementById('et-taller').value='${cl.n.replace(/'/,"\''")}';document.getElementById('et-suggest').innerHTML='';ETF._checkAddr('${cl.n.replace(/'/,"\''")}')">📍 ${cl.n}</button>`).join('');
     if(v)ETF._checkAddr(v);
+  },
+  _toggleColor(checked){
+    const s=document.getElementById('et-color-section');
+    if(s)s.style.display=checked?'block':'none';
+    if(checked&&ETF._colorItems.length===0)ETF._colorItems=[{id:uid(),cant:'',marca:'',acab:''}];
+    ETF._renderColorItems();
+  },
+  _toggleOficColor(checked){
+    const s=document.getElementById('et-ofic-color-section');
+    if(s)s.style.display=checked?'block':'none';
+    if(checked&&ETF._colorItems.length===0)ETF._colorItems=[{id:uid(),cant:'',marca:'',acab:''}];
+    ETF._renderOficColorItems();
+  },
+  _addColorItem(){
+    ETF._syncColorItems(); // save current DOM values before re-render
+    ETF._colorItems.push({id:uid(),cant:'',marca:'',acab:''});
+    ETF._renderColorItems();
+  },
+  _removeColorItem(cid){
+    ETF._syncColorItems(); // save current DOM values before re-render
+    ETF._colorItems=ETF._colorItems.filter(c=>c.id!==cid);
+    if(!ETF._colorItems.length)ETF._colorItems=[{id:uid(),cant:'',marca:'',acab:''}];
+    ETF._renderColorItems();
+  },
+  _syncColorItems(){
+    // Read current DOM input values back into _colorItems array
+    ETF._colorItems=ETF._colorItems.map(c=>({
+      ...c,
+      cant:document.getElementById('etc-cant-'+c.id)?.value||c.cant,
+      marca:document.getElementById('etc-marca-'+c.id)?.value||c.marca,
+      acab:document.getElementById('etc-acab-'+c.id)?.value||c.acab,
+    }));
+  },
+  _renderColorItems(){
+    const el=document.getElementById('et-color-items');if(!el)return;
+    el.innerHTML=ETF._colorItems.map((c,i)=>`
+      <div style="border:1px solid rgba(160,80,240,.3);border-radius:8px;padding:10px;margin-bottom:6px;background:rgba(160,80,240,.06)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c084fc">Color ${i+1}</span>
+          ${ETF._colorItems.length>1?`<button class="btn btn-sm btn-ic" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;padding:2px 6px;font-size:11px" onclick="ETF._removeColorItem('${c.id}')">✕</button>`:''}
+        </div>
+        <div class="fg" style="margin-bottom:6px"><label class="fl" style="color:#c084fc">Cantidad</label><input id="etc-cant-${c.id}" class="fc" autocomplete="off" value="${esc(c.cant)}"></div>
+        <div class="fg" style="margin-bottom:6px"><label class="fl" style="color:#c084fc">Marca y Código</label><input id="etc-marca-${c.id}" class="fc" autocomplete="off" value="${esc(c.marca)}"></div>
+        <div class="fg" style="margin-bottom:0"><label class="fl" style="color:#c084fc">Acabado</label><input id="etc-acab-${c.id}" class="fc" autocomplete="off" value="${esc(c.acab)}"></div>
+      </div>`).join('');
+  },
+  _renderOficColorItems(){
+    // Oficina reuses _colorItems but renders to et-ofic-color-items (same structure)
+    ETF._renderColorItems(); // share same items list, just rendered in campo section for now
+  },
+  _collectColors(){
+    ETF._syncColorItems(); // make sure latest DOM values are in array
+    return ETF._colorItems.map(c=>({
+      id:c.id,
+      cant:document.getElementById('etc-cant-'+c.id)?.value?.trim()||'',
+      marca:document.getElementById('etc-marca-'+c.id)?.value?.trim()||'',
+      acab:document.getElementById('etc-acab-'+c.id)?.value?.trim()||'',
+      done:false,doneAt:null
+    })).filter(c=>c.cant||c.marca||c.acab);
   },
   _checkAddr(name){
     const addrSec=document.getElementById('et-addr-section');if(!addrSec)return;
@@ -3603,15 +3977,31 @@ const ETF={
       if(ETF._cat==='oficina')taller=document.getElementById('et-ofic-taller')?.value?.trim()||'';
     }
     const pri=gv('et-pri')||'media';
+    const colorChkEl=document.getElementById(ETF._cat==='oficina'?'et-ofic-color-chk':'et-color-chk');
+    const colors=colorChkEl?.checked?ETF._collectColors():[];
     if(ETF._editId){
-      BT.update(ETF._editId,{text,notes,pri,cat:ETF._cat,taller,actType:ETF._type||''});
+      const prevTask=BT.all().find(x=>x.id===ETF._editId);
+      BT.update(ETF._editId,{text,notes,pri,cat:ETF._cat,taller,actType:ETF._type||'',_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
+      // Propagate notes change to linked albfac task (same taller, same docTipo, pending)
+      if(prevTask&&ETF._cat==='campo'&&notes!==prevTask.notes){
+        const prevNotes=prevTask.notes||'';
+        const linkedAlbfac=BT.all().find(a=>
+          a.cat==='albfac'&&a.st!=='comp'&&
+          (a.taller||'').toLowerCase()===(taller||prevTask.taller||'').toLowerCase()&&
+          (a.notes||'').includes(prevNotes.substring(0,Math.min(20,prevNotes.length)))
+        );
+        if(linkedAlbfac&&prevNotes){
+          const updAlbNotes=(linkedAlbfac.notes||'').replace(prevNotes,notes);
+          if(updAlbNotes!==linkedAlbfac.notes)BT.update(linkedAlbfac.id,{notes:updAlbNotes});
+        }
+      }
       ETF._editId=null;
       UI.hm('etask-modal');UI.toast('Tarea actualizada ✅','ok');
     }else{
-      BT.add(text,notes,pri,App.emp?.id,ETF._cat,taller,ETF._type||'');
+      BT.add(text,notes,pri,App.emp?.id,ETF._cat,taller,ETF._type||'',colors);
       UI.hm('etask-modal');UI.toast('Tarea creada ✅','ok');
     }
-    ET.render();App._updBadge();
+    globalRender();App._updBadge();
   },
   openEdit(id){
     const t=BT.all().find(x=>x.id===id);if(!t)return;
@@ -3626,10 +4016,29 @@ const ETF={
     const ofTallerEl=document.getElementById('et-ofic-taller');if(ofTallerEl)ofTallerEl.value=t.cat==='oficina'?t.taller||'':'';
     const txtEl=document.getElementById('et-txt');if(txtEl)txtEl.value=t.cat!=='campo'?t.text||'':'';
     const priEl=document.getElementById('et-pri');if(priEl)priEl.value=t.pri||'media';
+    ETF._resetColor();
+    const existingColors=getTaskColors(t);
+    if(existingColors.length){
+      ETF._colorItems=existingColors.map(c=>({id:c.id||uid(),cant:c.cant||'',marca:c.marca||'',acab:c.acab||''}));
+      if(t.cat==='campo'){
+        const colorRow=document.getElementById('et-color-toggle-row');if(colorRow)colorRow.style.display='block';
+        const colorChk=document.getElementById('et-color-chk');if(colorChk)colorChk.checked=true;
+        const colorSec=document.getElementById('et-color-section');if(colorSec)colorSec.style.display='block';
+        ETF._renderColorItems();
+      }else if(t.cat==='oficina'){
+        const oficRow=document.getElementById('et-ofic-color-row');if(oficRow)oficRow.style.display='block';
+        const oficChk=document.getElementById('et-ofic-color-chk');if(oficChk)oficChk.checked=true;
+        const oficSec=document.getElementById('et-ofic-color-section');if(oficSec)oficSec.style.display='block';
+        ETF._renderColorItems(); // same items list, same DOM container
+      }
+    }else if(t.cat==='campo'){
+      const colorRow=document.getElementById('et-color-toggle-row');if(colorRow)colorRow.style.display='block';
+    }else if(t.cat==='oficina'){
+      const oficRow=document.getElementById('et-ofic-color-row');if(oficRow)oficRow.style.display='block';
+    }
     document.querySelector('#etask-modal .mt').textContent='✏️ Editar Tarea';
     UI.sm('etask-modal');
   },
-  _editId:null,
 };
 
 /* ─── TALLERES MANAGER ─── */
