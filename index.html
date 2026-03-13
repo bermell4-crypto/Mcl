@@ -940,6 +940,7 @@ const pct=(v,mx)=>Math.min(100,Math.round((v/mx)*100));
 const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const escNL=s=>esc(s).replace(/\r\n|\r|\n/g,'<br>');
 const gv=id=>{const el=document.getElementById(id);return el?(el.type==='checkbox'?el.checked:el.value||''):''};
 const getEmp=id=>EMPS.find(e=>e.id===id);
 const pastDate=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().split('T')[0]};
@@ -1680,11 +1681,11 @@ const DP={
       parts.forEach(p=>{
         html+=`<div style="margin-bottom:12px">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--er);letter-spacing:.04em;margin-bottom:6px">${p.n}</div>
-          <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--er);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;white-space:pre-wrap;word-break:break-word">${esc(p.text)}</div>
+          <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--er);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;word-break:break-word">${esc(p.text).replace(/\r\n|\r|\n/g,'<br>')}</div>
         </div>`;
       });
     }else{
-      html+=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;white-space:pre-wrap;word-break:break-word" id="dp-notes-view">${noteText?esc(noteText):'<span style="color:var(--tx3)">Sin notas</span>'}</div>`;
+      html+=`<div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:16px 18px;font-size:17px;color:var(--tx);line-height:1.8;word-break:break-word" id="dp-notes-view">${noteText?esc(noteText).replace(/\r\n|\r|\n/g,'<br>'):'<span style="color:var(--tx3)">Sin notas</span>'}</div>`;
     }
 
     if(editable){
@@ -1727,13 +1728,13 @@ const DP={
     if(s._mppNote){
       body+=`<div style="margin-bottom:16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#ff8c00;margin-bottom:8px">⚠️ Material pendiente de servir</div>
-        <div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-left:3px solid #ff8c00;border-radius:var(--r);padding:14px 16px;font-size:14px;color:#ffd080;line-height:1.6;white-space:pre-wrap">${esc(s._mppNote)}</div>
+        <div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-left:3px solid #ff8c00;border-radius:var(--r);padding:14px 16px;font-size:14px;color:#ffd080;line-height:1.6;white-space:pre-wrap">${escNL(s._mppNote)}</div>
       </div>`;
     }
     if(s.note2){
       body+=`<div style="margin-bottom:16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ok);margin-bottom:8px">📝 Nota adicional</div>
-        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--ok);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--tx2);line-height:1.6;white-space:pre-wrap">${esc(s.note2)}</div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--ok);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--tx2);line-height:1.6;white-space:pre-wrap">${escNL(s.note2)}</div>
       </div>`;
     }
 
@@ -1778,7 +1779,7 @@ const DP={
     if(task.text&&task.text!==task.taller){
       body+=`<div style="margin-bottom:16px">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);margin-bottom:8px">📌 Descripción</div>
-        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:14px 16px;font-size:15px;color:var(--tx);line-height:1.65;white-space:pre-wrap">${esc(task.text)}</div>
+        <div style="background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:var(--r);padding:14px 16px;font-size:15px;color:var(--tx);line-height:1.65;white-space:pre-wrap">${escNL(task.text)}</div>
       </div>`;
     }
     if(task.notes){
@@ -1792,7 +1793,7 @@ const DP={
       if(pndPart){
         body+=`<div style="margin-bottom:16px;background:rgba(220,80,60,.1);border:1px solid var(--er);border-radius:var(--r);padding:14px 16px">
           <div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:6px">⚠️ PENDIENTE — NO incluir en documento</div>
-          <div style="font-size:14px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${esc(pndPart)}</div>
+          <div style="font-size:14px;color:var(--tx);line-height:1.6;white-space:pre-wrap">${escNL(pndPart)}</div>
         </div>`;
       }
     }else if(!task.text||task.text===task.taller){
@@ -1936,19 +1937,19 @@ const SDM={
     if(noteText){
       content+=`<div style="padding:12px 14px;background:rgba(255,255,255,.05);border-radius:var(--r);border-left:3px solid var(--acc)">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em">📋 Pedido / Notas</div>
-        <div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.6">${esc(noteText)}</div>
+        <div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.6">${escNL(noteText)}</div>
       </div>`;
     }
     if(s._mppNote){
       content+=`<div style="padding:12px 14px;background:rgba(255,120,0,.13);border-radius:var(--r);border-left:3px solid #ff8c00">
         <div style="font-size:11px;color:#ff8c00;font-weight:900;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.07em">⚠️ Material pendiente de servir</div>
-        <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.6">${esc(s._mppNote)}</div>
+        <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.6">${escNL(s._mppNote)}</div>
       </div>`;
     }
     if(s.note2){
       content+=`<div style="padding:12px 14px;background:rgba(255,255,255,.05);border-radius:var(--r);border-left:3px solid var(--ok)">
         <div style="font-size:11px;color:var(--ok);font-weight:700;margin-bottom:6px">📝 Nota adicional</div>
-        <div style="font-size:13px;color:var(--tx2);white-space:pre-wrap;line-height:1.6">${esc(s.note2)}</div>
+        <div style="font-size:13px;color:var(--tx2);white-space:pre-wrap;line-height:1.6">${escNL(s.note2)}</div>
       </div>`;
     }
     if(!noteText&&!s._mppNote&&!s.note2){
@@ -2105,24 +2106,24 @@ const ER={
             inlineNote=`<div style="margin:6px 13px 8px;display:flex;flex-direction:column;gap:6px">
               ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
                 <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
-                <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(p.text)}</div>
+                <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
               </div>`).join('')}
             </div>`;
           }else if(cleanNote){
-            inlineNote=`<div style="margin:6px 13px 8px;border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(cleanNote)}</div>`;
+            inlineNote=`<div style="margin:6px 13px 8px;border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(cleanNote)}</div>`;
           }
           // Pink: material from previous order being served NOW
           if(mppPrevParts.length>0){
             inlineNote+=`<div style="margin:0 13px 8px;background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 12px">
               <div style="font-size:11px;font-weight:900;color:#c084fc;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">🔁 PENDIENTE PEDIDO ANTERIOR</div>
-              <div style="font-size:13px;color:#e9d5ff;white-space:pre-wrap;line-height:1.5">${esc(mppPrevParts.join('\n'))}</div>
+              <div style="font-size:13px;color:#e9d5ff;white-space:pre-wrap;line-height:1.5">${escNL(mppPrevParts.join('\n'))}</div>
             </div>`;
           }
           // Orange: material that CAN'T be served today
           if(s._mppNote){
             inlineNote+=`<div style="margin:0 13px 8px;background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-radius:8px;padding:8px 12px">
               <div style="font-size:11px;font-weight:900;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">⚠️ MATERIAL PENDIENTE DE SERVIR</div>
-              <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${esc(s._mppNote)}</div>
+              <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${escNL(s._mppNote)}</div>
             </div>`;
           }
         }
@@ -2695,17 +2696,17 @@ const ET={
           inlineNotes=`<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
             ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
               <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
-              <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${esc(p.text)}</div>
+              <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
             </div>`).join('')}
           </div>`;
         }else if(displayPedido&&!isMppTask){
-          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${esc(displayPedido)}</div>`;
+          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${escNL(displayPedido)}</div>`;
         }
         if(noteMpp||isMppTask){
           const mppText=isMppTask?MPP.split(t.notes).mpp:noteMpp;
           inlineNotes+=`<div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-radius:8px;padding:8px 12px;margin-bottom:8px">
             <div style="font-size:11px;font-weight:900;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">⚠️ MATERIAL PENDIENTE DE SERVIR</div>
-            <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${esc(mppText)}</div>
+            <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${escNL(mppText)}</div>
           </div>`;
         }
       }
@@ -2737,7 +2738,7 @@ const ET={
           ${mppBadge}
         </div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'&&t.cat!=='albfac'||(t.cat==='campo'&&t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(t.text)}</div>`:''}
+          ${(t.cat!=='campo'&&t.cat!=='albfac'||(t.cat==='campo'&&t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escNL(t.text)}</div>`:''}
           ${colorInline}
           ${inlineNotes}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
@@ -2919,7 +2920,7 @@ const EMPP={
     </select>`:'';
     return`<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r);margin-bottom:8px;border-left:3px solid ${e2.color};overflow:hidden">
       <div style="padding:12px 14px 8px">
-        <div style="font-size:15px;font-weight:700;color:var(--tx);white-space:pre-wrap;line-height:1.5;word-break:break-word">${esc(i.text)}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--tx);white-space:pre-wrap;line-height:1.5;word-break:break-word">${escNL(i.text)}</div>
         <div style="font-size:11px;color:var(--tx3);margin-top:6px">${dm} · ${tStr(i.ts)} · <span style="color:${e2.color};font-weight:700">${isMe?'Yo':e2.name}</span></div>
       </div>
       ${showDel?`<div style="display:flex;align-items:center;gap:8px;padding:0 14px 12px">
@@ -3631,7 +3632,7 @@ const ATR={
           ${catInfo?`<span class="badge ${CAT_STYLE[task.cat]?.badge||'b-wn'}" style="font-size:10px">${catInfo}</span>`:''}
           ${task.actType?`<span class="badge b-ok" style="font-size:10px">${at.icon} ${at.label}</span>`:''}
         </div>
-        ${task.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc);margin-bottom:6px">${esc(task.notes)}</div>`:''}
+        ${task.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc);margin-bottom:6px">${escNL(task.notes)}</div>`:''}
         ${(task.taller||task.actType)?`<div style="font-size:11px;color:rgba(30,201,138,.85)">✅ Taller y actividad se añadirán automáticamente a la ruta</div>`:''}
       </div>`;
     // Buscar otros pedidos pendientes del mismo cliente
@@ -3653,7 +3654,7 @@ const ATR={
             <input type="checkbox" id="atr-chk-${t.id}" style="margin-top:3px;flex-shrink:0;width:20px;height:20px;accent-color:var(--acc)" onchange="ATR._togglePending('${t.id}',this.checked)">
             <div style="flex:1;min-width:0">
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;text-transform:uppercase;color:var(--wn);margin-bottom:5px">${esc(t.taller||t.text)}</div>
-              ${t.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc)">${esc(t.notes)}</div>`:''}
+              ${t.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc)">${escNL(t.notes)}</div>`:''}
               ${!t.notes&&t.text!==t.taller?`<div style="font-size:13px;color:var(--tx2);margin-top:3px">${esc(t.text)}</div>`:''}
               <div style="font-size:11px;color:var(--tx3);margin-top:6px">${{campo:'🏭 Taller',almacen:'📦 Almacén',oficina:'💼 Oficina'}[t.cat]||''}</div>
             </div>
