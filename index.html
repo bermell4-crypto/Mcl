@@ -32,7 +32,7 @@
   --mcl-grad:linear-gradient(90deg,#e8384f 0%,#e8701a 28%,#e8c020 50%,#4caf50 72%,#26a69a 100%);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',sans-serif;font-size:15px;overflow-x:hidden}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',sans-serif;font-size:15px;overflow-x:hidden;text-transform:uppercase}
 .hidden{display:none!important}
 .view{min-height:100vh;display:flex;flex-direction:column}
 .content{flex:1;padding:16px;max-width:860px;margin:0 auto;width:100%;padding-bottom:32px}
@@ -100,7 +100,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 /* Forms */
 .fg{margin-bottom:13px}
 .fl{display:block;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx2);margin-bottom:5px}
-.fc{width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rs);padding:9px 12px;color:var(--tx);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
+.fc{width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:var(--rs);padding:9px 12px;color:var(--tx);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;text-transform:uppercase}
 .fc:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acdim)}
 .fc::placeholder{color:var(--tx3)}
 select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233e5468' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
@@ -583,6 +583,17 @@ tr:hover td{background:rgba(240,120,40,.025)}
         <div id="atr-pending-list"></div>
         <div style="font-size:11px;color:var(--tx3);margin-top:6px">Los pedidos marcados se combinarán en una sola parada con las notas unificadas.</div>
       </div>
+      <!-- Material pendiente — ENCIMA de Asignar a -->
+      <div style="margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
+          <input type="checkbox" id="atr-mpp-chk" style="width:20px;height:20px;accent-color:var(--wn);cursor:pointer" onchange="document.getElementById('atr-mpp-box').style.display=this.checked?'block':'none'">
+          <span style="font-size:14px;font-weight:700;color:var(--wn)">📦 ¿Quedó material pendiente de servir?</span>
+        </label>
+        <div id="atr-mpp-box" style="display:none;margin-top:10px">
+          <textarea id="atr-mpp" class="fc" rows="4" placeholder="Escribe el material que no se pudo entregar..." style="resize:none"></textarea>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Se creará una nueva tarea de Taller con este material pendiente.</div>
+        </div>
+      </div>
       <div class="fg">
         <label class="fl">Asignar a <span style="color:var(--er)">*</span></label>
         <select id="atr-emp" class="fc"></select>
@@ -603,17 +614,6 @@ tr:hover td{background:rgba(240,120,40,.025)}
             <input type="radio" name="atr-doc" value="contado" id="atr-doc-cnt" style="width:18px;height:18px;accent-color:#dc50b4;cursor:pointer">
             <div><div style="font-size:14px;font-weight:700;color:var(--tx)">💵 Contado</div><div style="font-size:11px;color:var(--tx3)">Pago en efectivo al momento</div></div>
           </label>
-        </div>
-      </div>
-      <!-- Material pendiente -->
-      <div style="border-top:1px solid var(--bdr);margin-top:12px;padding-top:12px">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
-          <input type="checkbox" id="atr-mpp-chk" style="width:20px;height:20px;accent-color:var(--wn);cursor:pointer" onchange="document.getElementById('atr-mpp-box').style.display=this.checked?'block':'none'">
-          <span style="font-size:14px;font-weight:700;color:var(--wn)">📦 ¿Quedó material pendiente de servir?</span>
-        </label>
-        <div id="atr-mpp-box" style="display:none;margin-top:10px">
-          <textarea id="atr-mpp" class="fc" rows="4" placeholder="Escribe el material que no se pudo entregar..." style="resize:none"></textarea>
-          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Se creará una nueva tarea de Taller con este material pendiente.</div>
         </div>
       </div>
     </div>
@@ -670,7 +670,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
         </div>
         <div class="fg" style="margin-top:6px">
           <label class="fl">Pedido / Notas</label>
-          <textarea id="et-campo-txt" class="fc" rows="4" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:none"></textarea>
+          <textarea id="et-campo-txt" class="fc" rows="10" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:vertical;min-height:160px"></textarea>
         </div>
       </div>
 
@@ -1095,6 +1095,19 @@ const BT={
   assignToRoute:(id,eid,type,taller,notes,est,mppNote,mppTaskId)=>{
     DB.map(K.BT,t=>t.id===id?{...t,eid,routeEid:eid,routeType:type,routeTaller:taller,st:'en_proc'}:t);
     RT.addStop(eid,{taller,type,est:est||'',note:notes||'',_taskId:id,_mppNote:mppNote||'',_mppTaskId:mppTaskId||null});
+    // Auto-añadir cada línea del material pendiente como item individual en MPP
+    if(mppNote){
+      const emp=App.emp;
+      mppNote.split('\n').forEach(line=>{
+        const t=line.trim();
+        if(!t)return;
+        // Evitar duplicados: no añadir si ya existe exactamente este texto en MPP
+        const exists=DB.all(K.MPP).some(i=>(i.text||'').trim().toLowerCase()===t.toLowerCase());
+        if(!exists){
+          DB.push(K.MPP,{id:uid(),eid:emp?.id||null,text:t,ts:nowMs(),groupId:null,_fromMppNote:true,_taller:taller});
+        }
+      });
+    }
   },
 };
 
@@ -1642,6 +1655,48 @@ const EF={
 };
 
 /* ─── DETAIL PANEL (pantalla completa) ─── */
+
+// Calcula el material pendiente efectivo de una parada descontando lo que ya
+// aparece en las notas de la propia parada (pedidos fusionados) o en otras
+// paradas del mismo taller en la ruta.
+function _effectiveMpp(mppNote, stopNote, taller, allStops, thisStopId){
+  if(!mppNote)return'';
+
+  // Recoge TODAS las líneas servidas: de la nota propia + otras paradas del mismo taller
+  const tallerLow=(taller||'').toLowerCase().trim();
+  const servedLines=new Set();
+
+  // 1. Líneas de la nota de ESTA parada (incluye pedido 1 y pedido 2 fusionados)
+  const ownNote=stopNote||'';
+  ownNote.split('\n').forEach(l=>{
+    const t=l.trim().toLowerCase().replace(/^\(\d+\)\s*/,''); // quitar prefijos (1) (2)
+    if(t)servedLines.add(t);
+  });
+
+  // 2. Líneas de otras paradas del mismo taller (por si no están fusionadas)
+  allStops.forEach(stop=>{
+    if(stop.id===thisStopId)return;
+    if((stop.taller||'').toLowerCase().trim()!==tallerLow)return;
+    (stop.note||'').split('\n').forEach(l=>{
+      const t=l.trim().toLowerCase().replace(/^\(\d+\)\s*/,'');
+      if(t)servedLines.add(t);
+    });
+  });
+
+  if(servedLines.size===0)return mppNote;
+
+  // Filtra las líneas del mppNote que ya están cubiertas
+  const remainingLines=mppNote.split('\n').filter(l=>{
+    const t=l.trim().toLowerCase();
+    if(!t)return false;
+    for(const served of servedLines){
+      if(served.length>3&&(served.includes(t)||t.includes(served)))return false;
+    }
+    return true;
+  });
+  return remainingLines.join('\n');
+}
+
 const DP={
   _type:null,
   _id:null,
@@ -1649,6 +1704,195 @@ const DP={
   _swipeStartX:0,
   _swipeStartY:0,
   _swiping:false,
+  _prepTaps:{},
+
+  _prepLineTap(taskId, lineIdx){
+    const key=`${taskId}-${lineIdx}`;
+    const now=Date.now();
+    if(this._prepTaps[key]&&now-this._prepTaps[key]<500){
+      // Double tap confirmado — marcar/desmarcar
+      delete this._prepTaps[key];
+      ET.togglePrepLine(taskId,lineIdx);
+    }else{
+      // Primer toque — flash visual para indicar que detectó el toque
+      this._prepTaps[key]=now;
+      const el=document.querySelector(`[data-prep-idx="${lineIdx}"]`);
+      if(el){
+        el.style.transform='scale(.97)';
+        el.style.background='rgba(74,222,128,.08)';
+        setTimeout(()=>{el.style.transform='';el.style.background='';},200);
+      }
+      setTimeout(()=>{if(this._prepTaps[key]===now)delete this._prepTaps[key];},600);
+    }
+  },
+
+  _prepLongTimer:null,
+  _prepLongStart(taskId, lineIdx, el){
+    DP._prepLongTimer=setTimeout(()=>{
+      DP._prepLongTimer=null;
+      // Cancelar doble-tap pendiente
+      delete DP._prepTaps[`${taskId}-${lineIdx}`];
+      // Vibración táctil si disponible
+      if(navigator.vibrate)navigator.vibrate(40);
+      DP._openEditPrepLine(taskId, lineIdx);
+    }, 600);
+  },
+  _prepLongCancel(){
+    if(DP._prepLongTimer){clearTimeout(DP._prepLongTimer);DP._prepLongTimer=null;}
+  },
+
+  _openEditPrepLine(taskId, lineIdx){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const noteRaw=t.cat==='albfac'
+      ?t.notes.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim()
+      :t.notes||'';
+    const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+    const si=noteRaw.indexOf(PEND_SEP);
+    const pedPart=si>=0?noteRaw.slice(0,si).trim():noteRaw.trim();
+    const lines=pedPart.split('\n');
+    const currentText=lines[lineIdx]||'';
+
+    const mid='prep-edit-line-modal';
+    let el=document.getElementById(mid);
+    if(!el){
+      el=document.createElement('div');
+      el.id=mid;
+      el.className='mo hidden';
+      el.innerHTML=`
+        <div class="md" style="max-width:420px">
+          <div class="mh">
+            <span class="mt">✏️ Editar línea</span>
+            <button class="mc" onclick="UI.hm('${mid}')">✕</button>
+          </div>
+          <div class="mb" style="padding:16px 20px 20px">
+            <textarea id="prep-edit-line-ta" class="fc" rows="3"
+              style="resize:none;font-size:17px;line-height:1.6;margin-bottom:14px;font-weight:500"></textarea>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-gh f1" style="padding:13px" onclick="UI.hm('${mid}')">Cancelar</button>
+              <button class="btn btn-ok f1" style="padding:13px;font-weight:800" onclick="DP._savePrepLine()">💾 Guardar</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el);
+    }
+    DP._editPrepTaskId=taskId;
+    DP._editPrepLineIdx=lineIdx;
+    const ta=document.getElementById('prep-edit-line-ta');
+    ta.value=currentText;
+    UI.sm(mid);
+    setTimeout(()=>{ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);},80);
+  },
+
+  _editPrepTaskId:null,
+  _editPrepLineIdx:null,
+
+  _savePrepLine(){
+    const taskId=DP._editPrepTaskId;
+    const lineIdx=DP._editPrepLineIdx;
+    if(taskId===null||lineIdx===null)return;
+    const newText=(document.getElementById('prep-edit-line-ta')?.value||'').trimEnd();
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+
+    const noteRaw=t.cat==='albfac'
+      ?t.notes.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim()
+      :t.notes||'';
+    const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+    const si=noteRaw.indexOf(PEND_SEP);
+    const pedPart=si>=0?noteRaw.slice(0,si).trim():noteRaw.trim();
+    const pendPart=si>=0?noteRaw.slice(si):''
+    const lines=pedPart.split('\n');
+    lines[lineIdx]=newText;
+    const newPedPart=lines.join('\n');
+
+    // Reconstruct full notes
+    let newNotes;
+    if(t.cat==='albfac'){
+      // Preserve the date header prefix
+      const prefix=t.notes.match(/^(\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?)/)?.[1]||'';
+      newNotes=prefix+newPedPart+pendPart;
+    }else{
+      newNotes=newPedPart+pendPart;
+    }
+
+    BT.update(taskId,{notes:newNotes});
+    UI.hm('prep-edit-line-modal');
+    DP._refreshPrepBody(taskId);
+    UI.toast('Línea actualizada ✅','ok');
+    DP._editPrepTaskId=null;DP._editPrepLineIdx=null;
+  },
+
+  // Detecta líneas de metadatos que NO son productos seleccionables en prep
+  _isMetaLine(line){
+    const t=line.trim();
+    if(!t)return true; // vacía
+    if(/^material\s+pendiente:?\s*$/i.test(t))return true; // encabezado "Material pendiente:"
+    if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(t))return true;   // fecha "13/3/2026"
+    if(/^\d{4}-\d{2}-\d{2}$/.test(t))return true;          // fecha ISO
+    return false;
+  },
+
+  _refreshPrepBody(taskId){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const emp=App.emp;
+    const prepLines=t.preparedLines||[];
+    const amPreparer=emp&&t.preparingBy===emp.id;
+    const noteRaw=t.cat==='albfac'?t.notes.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim():t.notes||'';
+    const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+    const si=noteRaw.indexOf(PEND_SEP);
+    const pedPart=si>=0?noteRaw.slice(0,si).trim():noteRaw.trim();
+    const lines=pedPart.split('\n');
+    // Solo contar líneas que son productos reales (no metadatos)
+    const total=lines.filter(l=>!DP._isMetaLine(l)).length;
+    const done=lines.filter((l,i)=>!DP._isMetaLine(l)&&prepLines.includes(i)).length;
+    const container=document.getElementById('dp-prep-lines');
+    if(!container)return;
+    // Progress mini-bar
+    const pctDone=total>0?Math.round(done/total*100):0;
+    const progressHtml=total>0?`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pctDone}%;background:#4ade80;border-radius:3px;transition:width .3s"></div>
+        </div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:${done===total?'#4ade80':'var(--tx3)'}">${done}/${total}</div>
+      </div>`:'';
+    container.innerHTML=progressHtml+lines.map((line,idx)=>{
+      const isMeta=DP._isMetaLine(line);
+      const isDone=prepLines.includes(idx);
+      if(isMeta){
+        // Línea de metadato: se muestra como separador no seleccionable
+        if(!line.trim())return`<div style="height:6px"></div>`;
+        return`<div style="font-size:12px;font-weight:700;color:var(--tx3);letter-spacing:.06em;padding:4px 4px 6px;text-transform:uppercase">${escNL(line)}</div>`;
+      }
+      return`<div
+        data-prep-idx="${idx}"
+        style="
+          padding:13px 16px;
+          border-radius:10px;
+          margin-bottom:6px;
+          cursor:${amPreparer?'pointer':'default'};
+          background:${isDone?'rgba(74,222,128,.18)':'rgba(255,255,255,.04)'};
+          border:2px solid ${isDone?'#4ade80':'rgba(255,255,255,.08)'};
+          color:${isDone?'#4ade80':'var(--tx)'};
+          font-size:18px;
+          font-weight:${isDone?'700':'400'};
+          line-height:1.5;
+          transition:background .18s,border .18s,color .18s,transform .1s;
+          display:flex;align-items:center;gap:12px;
+          ${amPreparer?'user-select:none;-webkit-user-select:none;':''}
+          ${isDone?'text-decoration:line-through;text-decoration-color:rgba(74,222,128,.5);':''}
+        "
+        ${amPreparer?`
+          onclick="DP._prepLineTap('${taskId}',${idx})"
+          ontouchstart="DP._prepLongStart('${taskId}',${idx},this)"
+          ontouchend="DP._prepLongCancel()"
+          ontouchmove="DP._prepLongCancel()"
+          oncontextmenu="event.preventDefault();DP._openEditPrepLine('${taskId}',${idx})"
+        `:''}>
+        <span style="font-size:20px;flex-shrink:0;width:24px;text-align:center">${isDone?'✅':'○'}</span>
+        <span>${escNL(line)}</span>
+      </div>`;
+    }).join('');
+  },
 
   // Parse note text: if it has (N) markers, split into numbered sections
   _parseNotes(noteText){
@@ -1726,10 +1970,15 @@ const DP={
 
 
     if(s._mppNote){
-      body+=`<div style="margin-bottom:16px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#ff8c00;margin-bottom:8px">⚠️ Material pendiente de servir</div>
-        <div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-left:3px solid #ff8c00;border-radius:var(--r);padding:14px 16px;font-size:14px;color:#ffd080;line-height:1.6;white-space:pre-wrap">${escNL(s._mppNote)}</div>
-      </div>`;
+      const rt4mpp=RT.today(App.emp?.id);
+      const stopNote=s.note||(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.notes||'';})();
+      const effectiveMpp=_effectiveMpp(s._mppNote,stopNote,s.taller,rt4mpp.stops,s.id);
+      if(effectiveMpp){
+        body+=`<div style="margin-bottom:16px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#ff8c00;margin-bottom:8px">⚠️ Material pendiente de servir</div>
+          <div style="background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-left:3px solid #ff8c00;border-radius:var(--r);padding:14px 16px;font-size:14px;color:#ffd080;line-height:1.6;white-space:pre-wrap">${escNL(effectiveMpp)}</div>
+        </div>`;
+      }
     }
     if(s.note2){
       body+=`<div style="margin-bottom:16px">
@@ -1789,7 +2038,25 @@ const DP={
       const pedPart=si>=0?rawNotes.slice(0,si).trim():rawNotes.trim();
       const pndPart=si>=0?rawNotes.slice(si+PEND_SEP.length).trim():'';
       const _ds=(()=>{if(!task.ca)return'';const d=new Date(task.ca);return`Creada el ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}${task.createdBy?' por '+(getEmp(task.createdBy)?.name||task.createdBy):''}`;})();
-      body+=DP._renderNoteBlocks(pedPart, false, _ds);
+      // Prep mode: render lines as interactive tappable divs
+      const isPrepMode=task.cat==='campo'&&!!task.preparingBy;
+      const amPreparer=isPrepMode&&emp&&task.preparingBy===emp.id;
+      if(isPrepMode){
+        const prepEmpName=amPreparer?'Tú':(getEmp(task.preparingBy)?.name||task.preparingBy);        const _dsHeader=_ds?`<span style="font-size:11px;font-weight:400;color:var(--tx3);margin-left:10px;text-transform:none;letter-spacing:0">📅 ${_ds}</span>`:'';
+        body+=`<div style="margin-bottom:16px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+            📋 Pedido${_dsHeader}
+          </div>
+          ${amPreparer
+            ?`<div style="font-size:12px;color:#4ade80;font-weight:700;margin-bottom:10px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:6px">
+                <span style="font-size:16px">👆</span> Toca dos veces seguidas sobre una línea para marcarla como preparada
+              </div>`
+            :`<div style="font-size:11px;color:#facc15;font-weight:700;margin-bottom:8px;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.3);border-radius:6px;padding:5px 10px">📦 PREPARANDO POR ${prepEmpName}</div>`}
+          <div id="dp-prep-lines"></div>
+        </div>`;
+      }else{
+        body+=DP._renderNoteBlocks(pedPart, false, _ds);
+      }
       if(pndPart){
         body+=`<div style="margin-bottom:16px;background:rgba(220,80,60,.1);border:1px solid var(--er);border-radius:var(--r);padding:14px 16px">
           <div style="font-size:11px;font-weight:700;color:var(--er);margin-bottom:6px">⚠️ PENDIENTE — NO incluir en documento</div>
@@ -1814,13 +2081,30 @@ const DP={
       </div>`;
     }
     document.getElementById('dp-body').innerHTML=body;
+    // Render interactive prep lines after body is in DOM
+    if(task.cat==='campo'&&task.preparingBy)DP._refreshPrepBody(tid);
 
     const alreadyInRoute=!!task.routeEid,isMine=task.routeEid===emp?.id;
+    const amPreparer=task.cat==='campo'&&task.preparingBy===emp?.id;
     if(task.st!=='comp'){
       if(task.cat==='campo'&&!task._mpp){
-        document.getElementById('dp-footer').innerHTML=
-          `<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} f1" style="padding:14px;font-size:15px" onclick="ATR.open('${tid}');DP.close()">${alreadyInRoute?(isMine?'🗺 Reasignar mi ruta':'🗺 Reasignar'):'🗺 Añadir a ruta'}</button>
-           <button class="btn btn-gh f1" style="padding:14px;font-size:15px" onclick="ETF.openEdit('${tid}');DP.close()">✏️ Editar</button>`;
+        if(amPreparer){
+          document.getElementById('dp-footer').innerHTML=
+            `<button class="btn btn-sec f1" style="padding:14px;font-size:14px" onclick="UI.confirm('Cancelar preparación','¿Seguro que quieres cancelar? Se perderá el progreso.',()=>{ET.stopPrep('${tid}');DP.close()})">✖️ Cancelar</button>
+             <button class="btn btn-ok f1" style="padding:14px;font-size:15px;font-weight:800" onclick="ET.finishPrep('${tid}')">🗺 Mandar a Ruta</button>`;
+        }else{
+          const someoneElsePrepping=task.preparingBy&&task.preparingBy!==emp?.id;
+          if(someoneElsePrepping){
+            const whoName=getEmp(task.preparingBy)?.name||'un compañero';
+            document.getElementById('dp-footer').innerHTML=
+              `<button class="btn btn-wn f1" style="padding:14px;font-size:15px;font-weight:800;background:rgba(250,204,21,.15);border:1px solid rgba(250,204,21,.4);color:#facc15" onclick="ET._takeOverPrep('${tid}','${whoName}')">📦 En preparación (${whoName})</button>
+               <button class="btn btn-gh f1" style="padding:14px;font-size:15px" onclick="ETF.openEdit('${tid}');DP.close()">✏️ Editar</button>`;
+          }else{
+            document.getElementById('dp-footer').innerHTML=
+              `<button class="btn btn-ok f1" style="padding:16px;font-size:17px;font-weight:900;letter-spacing:.04em" onclick="ET.startPrep('${tid}')">📦 PREPARAR</button>
+               <button class="btn btn-gh f1" style="padding:14px;font-size:15px" onclick="ETF.openEdit('${tid}');DP.close()">✏️ Editar</button>`;
+          }
+        }
       }else if(task.cat==='albfac'){
         document.getElementById('dp-footer').innerHTML=
           `<button class="btn btn-ok" style="flex:1;padding:15px;font-size:16px;font-weight:800" onclick="ET.complete('${tid}');DP.close()">🖨️ IMPRESO</button>`;
@@ -1871,6 +2155,18 @@ const DP={
   },
   close(){
     if(DP._editMode&&DP._type==='stop')DP._saveNotes();
+
+    // Si se estaba preparando un pedido y el usuario cierra el panel sin
+    // pulsar "Mandar a Ruta" ni "Cancelar", liberar el bloqueo automáticamente.
+    // Se conserva preparedLines para no perder el progreso.
+    if(DP._type==='task'&&DP._id){
+      const emp=App.emp;
+      const t=BT.all().find(x=>x.id===DP._id);
+      if(t&&emp&&t.preparingBy===emp.id){
+        BT.update(DP._id,{preparingBy:null});
+      }
+    }
+
     const panel=document.getElementById('detail-panel');
     panel.classList.remove('open');
     panel.style.transform='';
@@ -1941,10 +2237,15 @@ const SDM={
       </div>`;
     }
     if(s._mppNote){
-      content+=`<div style="padding:12px 14px;background:rgba(255,120,0,.13);border-radius:var(--r);border-left:3px solid #ff8c00">
-        <div style="font-size:11px;color:#ff8c00;font-weight:900;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.07em">⚠️ Material pendiente de servir</div>
-        <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.6">${escNL(s._mppNote)}</div>
-      </div>`;
+      const rt4mpp2=RT.today(App.emp?.id);
+      const stopNote2=s.note||(()=>{const tk=BT.all().find(t=>t.id===s._taskId);return tk?.notes||'';})();
+      const effectiveMpp2=_effectiveMpp(s._mppNote,stopNote2,s.taller,rt4mpp2.stops,s.id);
+      if(effectiveMpp2){
+        content+=`<div style="padding:12px 14px;background:rgba(255,120,0,.13);border-radius:var(--r);border-left:3px solid #ff8c00">
+          <div style="font-size:11px;color:#ff8c00;font-weight:900;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.07em">⚠️ Material pendiente de servir</div>
+          <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.6">${escNL(effectiveMpp2)}</div>
+        </div>`;
+      }
     }
     if(s.note2){
       content+=`<div style="padding:12px 14px;background:rgba(255,255,255,.05);border-radius:var(--r);border-left:3px solid var(--ok)">
@@ -2119,11 +2420,13 @@ const ER={
               <div style="font-size:13px;color:#e9d5ff;white-space:pre-wrap;line-height:1.5">${escNL(mppPrevParts.join('\n'))}</div>
             </div>`;
           }
-          // Orange: material that CAN'T be served today
-          if(s._mppNote){
+          // Orange: material pendiente descontando lo ya cubierto en la nota de esta parada
+          const stopNoteInline=noteRaw;
+          const effectiveMppInline=_effectiveMpp(s._mppNote,stopNoteInline,s.taller,stops,s.id);
+          if(effectiveMppInline){
             inlineNote+=`<div style="margin:0 13px 8px;background:rgba(255,120,0,.13);border:1px solid rgba(255,140,0,.4);border-radius:8px;padding:8px 12px">
               <div style="font-size:11px;font-weight:900;color:#ff8c00;font-family:'Barlow Condensed',sans-serif;letter-spacing:.07em;margin-bottom:4px">⚠️ MATERIAL PENDIENTE DE SERVIR</div>
-              <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${escNL(s._mppNote)}</div>
+              <div style="font-size:13px;color:#ffd080;white-space:pre-wrap;line-height:1.5">${escNL(effectiveMppInline)}</div>
             </div>`;
           }
         }
@@ -2747,7 +3050,14 @@ const ET={
           </div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" onclick="event.stopPropagation()">
-          ${t.cat==='campo'&&!t._mpp?`<button class="btn ${alreadyInRoute?'btn-sec':'btn-pri'} btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ATR.open('${t.id}')">${alreadyInRoute?'🗺 Reasignar':'🗺 A la ruta'}</button>`:`
+          ${t.cat==='campo'&&!t._mpp?(()=>{
+            const preparer=t.preparingBy?getEmp(t.preparingBy):null;
+            const amPrep=emp&&t.preparingBy===emp.id;
+            const someoneElsePrepping=t.preparingBy&&!amPrep;
+            return someoneElsePrepping
+              ?`<button class="btn btn-sm" style="background:rgba(250,204,21,.15);border:1px solid rgba(250,204,21,.4);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;color:#facc15;white-space:nowrap;cursor:pointer" onclick="ET._takeOverPrep('${t.id}','${preparer?.name||'un compañero'}')">📦 En preparación</button>`
+              :ET._renderPrepBtn(t,amPrep);
+          })():`
             ${t.st!=='comp'
               ?`<div style="display:flex;gap:6px;flex:1;flex-wrap:wrap">
                   ${t.cat==='oficina'?`<button class="btn btn-sec btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="ET.toTaller('${t.id}')">🏭 Pasar a Taller</button>`:''}
@@ -2812,6 +3122,165 @@ const ET={
     BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
     globalRender();
     UI.toast('Color marcado como hecho ✅','ok');
+  },
+  _takeOverPrep(tid, whoName){
+    UI.confirm(
+      '📦 En preparación',
+      `Este pedido está siendo preparado por ${whoName}.\n¿Deseas prepararlo tú?`,
+      ()=>{
+        const emp=App.emp;if(!emp)return;
+        const t=BT.all().find(x=>x.id===tid);if(!t)return;
+        // Tomar el relevo: conservar preparedLines si existían
+        BT.update(tid,{preparingBy:emp.id,preparedLines:t.preparedLines||[]});
+        DP.openTask(tid);
+      }
+    );
+  },
+  _renderPrepBtn(t, amPrep){
+    const hasProgress=!amPrep&&t.preparedLines&&t.preparedLines.length>0;
+    const btnLabel=amPrep?'Preparando…':(hasProgress?'▶ Continuar':'📦 PREPARAR');
+    const action=amPrep?'resumeOrCancelPrep':'startPrep';
+    let html='<button class="btn btn-sm" style="background:rgba(74,222,128,.18);border:1px solid rgba(74,222,128,.45);color:#4ade80;white-space:nowrap;font-weight:900;font-size:13px;flex-shrink:0;padding:8px 14px" onclick="ET.'+action+'(\''+t.id+'\')">'+btnLabel+'</button>';
+    if(amPrep||hasProgress){
+      const title=amPrep?'Cancelar preparación':'Borrar progreso';
+      html+='<button class="btn btn-sm btn-ic" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;font-size:11px;flex-shrink:0" title="'+title+'" onclick="event.stopPropagation();ET.stopPrep(\''+t.id+'\')">✖</button>';
+    }
+    return html;
+  },
+  resumeOrCancelPrep(tid){
+    DP.openTask(tid);
+  },
+  startPrep(tid){
+    const emp=App.emp;if(!emp)return;
+    const t=BT.all().find(x=>x.id===tid);if(!t)return;
+    if(t.preparingBy&&t.preparingBy!==emp.id){
+      const who=getEmp(t.preparingBy)?.name||t.preparingBy;
+      UI.toast(`Ya lo está preparando ${who}`,'wn');return;
+    }
+    BT.update(tid,{preparingBy:emp.id,preparedLines:t.preparedLines||[]});
+    DP.openTask(tid); // abrir primero, globalRender al cerrar
+  },
+  stopPrep(tid){
+    BT.update(tid,{preparingBy:null,preparedLines:[]});
+    globalRender();
+    UI.toast('Preparación cancelada','wn');
+  },
+
+  finishPrep(tid){
+    const emp=App.emp;if(!emp)return;
+    const t=BT.all().find(x=>x.id===tid);if(!t)return;
+
+    // Calcular líneas NO preparadas
+    const noteRaw=t.cat==='albfac'
+      ?t.notes.replace(/^\[?\d{1,2}\/\d{1,2}\/\d{4}\]?\s*(?:—\s*[^\n]+)?\n?/,'').trim()
+      :t.notes||'';
+    const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+    const si=noteRaw.indexOf(PEND_SEP);
+    const pedPart=si>=0?noteRaw.slice(0,si).trim():noteRaw.trim();
+    const allLines=pedPart.split('\n');
+    const prepared=t.preparedLines||[];
+    const unpreparedLines=allLines
+      .map((l,i)=>({line:l,idx:i}))
+      .filter(({line,idx})=>!DP._isMetaLine(line)&&!prepared.includes(idx))
+      .map(({line})=>line);
+
+    const _doRoute=()=>{
+      // Guardar índices preparados en ATR ANTES de limpiar (los necesita _buildServedNotes)
+      ATR._preparedIdxs=prepared.slice();
+      ATR._preparedAllLines=allLines.slice();
+      BT.update(tid,{preparingBy:null,preparedLines:[]});
+      DP.close();
+      setTimeout(()=>ATR.open(tid),80);
+    };
+
+    if(unpreparedLines.length===0){
+      // Todo preparado → directo a ruta
+      _doRoute();
+      return;
+    }
+
+    // Hay líneas sin preparar → preguntar
+    const unpreparedText=unpreparedLines.join('\n');
+
+    // Modal de confirmación personalizado
+    const mid='prep-pending-modal';
+    let el=document.getElementById(mid);
+    if(!el){
+      el=document.createElement('div');
+      el.id=mid;
+      el.className='mo hidden';
+      el.innerHTML=`
+        <div class="md" style="max-width:440px">
+          <div class="mh">
+            <span class="mt">⚠️ Material no preparado</span>
+            <button class="mc" onclick="UI.hm('${mid}')">✕</button>
+          </div>
+          <div class="mb" style="padding:18px 20px">
+            <div style="font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:10px">
+              Las siguientes líneas <strong>no han sido marcadas</strong> como preparadas:
+            </div>
+            <div id="prep-pending-list" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:12px 14px;font-size:14px;color:#fca5a5;white-space:pre-wrap;line-height:1.7;margin-bottom:16px"></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--tx);margin-bottom:14px;text-align:center">
+              ¿Dejar el material no preparado como pedido pendiente?
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="font-size:12px;font-weight:700;color:var(--wn);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">📝 Añadir material pendiente:</label>
+              <textarea id="prep-extra-mpp" class="fc" rows="3" placeholder="Escribe el material que no puedes servir..." style="resize:none;font-size:14px"></textarea>
+              <div style="font-size:11px;color:var(--tx3);margin-top:4px">Opcional — añade cantidades parciales u otro material que no puedes servir.</div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-gh f1" style="padding:14px" onclick="ET._finishPrepNo()">🚫 No, solo a ruta</button>
+              <button class="btn btn-ok f1" style="padding:14px;font-weight:800" onclick="ET._finishPrepSi()">✅ Sí, dejar pendiente</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el);
+    }
+
+    // Guardar contexto para los callbacks
+    ET._prepPendingTid=tid;
+    ET._prepPendingLines=unpreparedText;
+    ET._prepPendingDoRoute=_doRoute;
+
+    document.getElementById('prep-pending-list').textContent=unpreparedText;
+    const extraTa=document.getElementById('prep-extra-mpp');
+    if(extraTa)extraTa.value='';
+    UI.sm(mid);
+  },
+
+  _prepPendingTid:null,
+  _prepPendingLines:'',
+  _prepPendingDoRoute:null,
+
+  _finishPrepNo(){
+    UI.hm('prep-pending-modal');
+    if(ET._prepPendingDoRoute)ET._prepPendingDoRoute();
+    ET._prepPendingTid=null;ET._prepPendingLines='';ET._prepPendingDoRoute=null;
+  },
+
+  _finishPrepSi(){
+    UI.hm('prep-pending-modal');
+    const unpreparedText=ET._prepPendingLines;
+    const extraText=(document.getElementById('prep-extra-mpp')?.value||'').trim();
+    const doRoute=ET._prepPendingDoRoute;
+    ET._prepPendingTid=null;ET._prepPendingLines='';ET._prepPendingDoRoute=null;
+
+    // Combinar líneas no preparadas + texto extra
+    let mppContent=unpreparedText;
+    if(extraText)mppContent+=(mppContent?'\n':'')+extraText;
+
+    // Guardar en ATR para que lo procese al confirmar la ruta (no crear tarea ahora)
+    ATR._prepMppMat=mppContent;
+
+    if(doRoute)doRoute();
+  },
+  togglePrepLine(taskId,lineIdx){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const lines=t.preparedLines||[];
+    const updated=lines.includes(lineIdx)?lines.filter(i=>i!==lineIdx):[...lines,lineIdx];
+    BT.update(taskId,{preparedLines:updated});
+    DP._refreshPrepBody(taskId);
+    globalRender();
   },
   colorAllDone(taskId){
     const t=BT.all().find(x=>x.id===taskId);if(!t)return;
@@ -3620,6 +4089,9 @@ const BMap={
 const ATR={
   _tid:null,
   _pendingIds:[],
+  _prepMppMat:null,
+  _preparedIdxs:null,      // índices de líneas preparadas, capturados antes de borrar preparedLines
+  _preparedAllLines:null,  // todas las líneas del pedido (para filtrar servidas)
   open(tid){
     ATR._tid=tid;ATR._pendingIds=[];
     const task=BT.all().find(t=>t.id===tid);if(!task)return;
@@ -3664,9 +4136,20 @@ const ATR={
         sec?.classList.add('hidden');
       }
     }
-    const mppEl=document.getElementById('atr-mpp');if(mppEl)mppEl.value='';
-    const mppChk=document.getElementById('atr-mpp-chk');if(mppChk)mppChk.checked=false;
-    const mppBox=document.getElementById('atr-mpp-box');if(mppBox)mppBox.style.display='none';
+    // Pre-rellenar mpp si viene de preparación con material pendiente
+    const mppEl=document.getElementById('atr-mpp');
+    const mppChk=document.getElementById('atr-mpp-chk');
+    const mppBox=document.getElementById('atr-mpp-box');
+    if(ATR._prepMppMat){
+      if(mppEl)mppEl.value=ATR._prepMppMat;
+      if(mppChk)mppChk.checked=true;
+      if(mppBox)mppBox.style.display='block';
+      ATR._prepMppMat=null; // consumir
+    }else{
+      if(mppEl)mppEl.value='';
+      if(mppChk)mppChk.checked=false;
+      if(mppBox)mppBox.style.display='none';
+    }
     document.querySelectorAll('input[name="atr-doc"]').forEach(r=>r.checked=false);
     const albDefaultRadio=document.getElementById('atr-doc-alb');if(albDefaultRadio)albDefaultRadio.checked=true;
     const sel=document.getElementById('atr-emp');
@@ -3685,64 +4168,87 @@ const ATR={
     const task=BT.all().find(t=>t.id===ATR._tid);if(!task)return;
     const taller=task.taller||task.text;
     const type=task.actType||'visita';
-    // Material pendiente de servir
+    // Material pendiente de servir — se añade al pedido pendiente existente, no se crea tarea nueva
     const mppMat=(document.getElementById('atr-mpp')?.value||'').trim();
     let mppTaskId=null;
     if(mppMat){
       const now=new Date();
       const dateStr=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
-      mppTaskId=uid();
-      DB.push(K.BT,{id:mppTaskId,text:taller,notes:`Material pendiente:\n${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'campo',taller,actType:'entrega'});
+      // Buscar tarea campo/entrega pendiente del mismo taller (sin ruta asignada)
+      const existingMppTask=BT.all().find(t=>
+        t.id!==ATR._tid &&
+        t.st==='pend' &&
+        !t.routeEid &&
+        t.cat==='campo' &&
+        (t.taller||t.text||'').toLowerCase().trim()===(taller||'').toLowerCase().trim()
+      );
+      if(existingMppTask){
+        // Añadir material al pedido pendiente existente
+        const prevNotes=(existingMppTask.notes||'').trim();
+        const sep=prevNotes?'\n':'';
+        BT.update(existingMppTask.id,{notes:prevNotes+sep+mppMat});
+        mppTaskId=existingMppTask.id;
+        UI.toast(`Material añadido al pedido pendiente de ${taller} 📦`,'in',3000);
+      }else{
+        // No existe ninguno → crear tarea nueva
+        mppTaskId=uid();
+        DB.push(K.BT,{id:mppTaskId,text:taller,notes:`Material pendiente:\n${mppMat}\n\n${dateStr}`,pri:'alta',st:'pend',seen:false,ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,cat:'campo',taller,actType:'entrega'});
+      }
     }
-    // Combine notes from selected pending tasks
-    let combinedNotes=task.notes||'';
+    // Notas del material SERVIDO: solo líneas marcadas como preparadas
+    const _buildServedNotes=()=>{
+      // Usar índices capturados antes de que _doRoute los borrara
+      const preparedIdxs=ATR._preparedIdxs||task.preparedLines||[];
+      const rawNotes=task.notes||'';
+      const PSEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
+      const si=rawNotes.indexOf(PSEP);
+      const pedPart=si>=0?rawNotes.slice(0,si).trim():rawNotes.trim();
+      // Usar allLines capturadas si disponibles (más fiables)
+      const allLines=ATR._preparedAllLines||pedPart.split('\n');
+      if(preparedIdxs.length>0){
+        const servedLines=allLines.filter((l,i)=>preparedIdxs.includes(i)&&!DP._isMetaLine(l));
+        return servedLines.length>0?servedLines.join('\n'):pedPart;
+      }
+      // Sin preparación: devolver solo líneas producto (sin metadatos)
+      return allLines.filter(l=>!DP._isMetaLine(l)).join('\n');
+    };
+    // Limpiar después de usar
+    const servedNotes=_buildServedNotes();
+    // Limpiar después de usar (NO antes)
+    ATR._preparedIdxs=null;
+    ATR._preparedAllLines=null;
+    // Combine notes from selected pending tasks (sobre base de lo servido)
+    let combinedNotes=servedNotes;
     if(ATR._pendingIds.length>0){
       const extras=ATR._pendingIds.map(pid=>BT.all().find(t=>t.id===pid)).filter(Boolean);
       extras.forEach(t=>{
-        // Skip taller name (t.text) if it's the same as the stop taller — ya se ve en el título
         const notesOnly=(t.notes||'').trim();
         const textPart=(t.text&&t.text.toLowerCase()!==taller.toLowerCase()&&t.text!==t.taller)?t.text.trim():'';
         const part=[textPart,notesOnly].filter(Boolean).join('\n');
         if(part)combinedNotes+=(combinedNotes?'\n\n':'')+part;
-        // Mark as en_proc linked to same stop
         DB.map(K.BT,x=>x.id===t.id?{...x,st:'en_proc',eid:toEid,routeEid:toEid}:x);
       });
     }
-    // Tipo de documento: crear/agrupar tarea albfac
+    // Tipo de documento: crear/agrupar tarea albfac (usa servedNotes: solo lo preparado)
     const docVal=document.querySelector('input[name="atr-doc"]:checked')?.value||null;
     if(docVal){
       const docLabel={albaran:'📄 Albarán',albfac:'📄🧾 Albarán + Factura',contado:'💵 Contado'}[docVal]||docVal;
       const now2=new Date();
       const dateStr2=`${now2.getDate()}/${now2.getMonth()+1}/${now2.getFullYear()}`;
-      // Build this pedido's material block — date only as separator, docTipo is stored separately
-      const pedidoBlock=combinedNotes?`[${dateStr2}]\n${combinedNotes}`.trim():dateStr2;
+      const pedidoBlock=servedNotes?`[${dateStr2}]\n${servedNotes}`.trim():dateStr2;
       const existing=BT.all().find(t=>
         t.cat==='albfac'&&t.st!=='comp'&&
         (t.taller||'').toLowerCase()===taller.toLowerCase()&&
         t.docTipo===docVal
       );
       if(existing){
-        // Split existing notes into pedidos part and pending part
-        const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
         const existingNotes=existing.notes||'';
-        const splitIdx=existingNotes.indexOf(PEND_SEP);
-        const existingPedidos=splitIdx>=0?existingNotes.slice(0,splitIdx).trim():existingNotes.trim();
-        // Collect all pending items: from existing + new
-        const pendingParts=[];
-        if(splitIdx>=0)pendingParts.push(existingNotes.slice(splitIdx+PEND_SEP.length).trim());
-        if(mppMat)pendingParts.push(mppMat.trim());
-        // Rebuild: all pedidos first, then all pending at bottom
-        let newNotes=existingPedidos+'\n\n──────────────\n'+pedidoBlock;
-        if(pendingParts.length>0)newNotes+=PEND_SEP+'\n'+pendingParts.join('\n──────\n');
+        let newNotes=existingNotes.trim()+'\n\n──────────────\n'+pedidoBlock;
         BT.update(existing.id,{notes:newNotes,updAt:nowMs()});
         UI.toast(`Añadido al documento existente de ${taller} ✅`,'ok',3000);
       }else{
-        // New albfac task: pedido material, then pending at bottom if any
-        const PEND_SEP='\n\n⚠️ PENDIENTE DE SERVIR (NO incluir en documento):';
-        let entryNotes=pedidoBlock;
-        if(mppMat)entryNotes+=PEND_SEP+'\n'+mppMat.trim();
         DB.push(K.BT,{
-          id:uid(),text:taller,notes:entryNotes,pri:'alta',st:'pend',seen:false,
+          id:uid(),text:taller,notes:pedidoBlock,pri:'alta',st:'pend',seen:false,
           ca:nowMs(),createdBy:App.emp?.id||'boss',eid:null,routeEid:null,
           cat:'albfac',taller,actType:'',docTipo:docVal
         });
@@ -3759,7 +4265,6 @@ const ATR={
     const mergedStop=rt2.stops.find(x=>!x.done&&x.taller===taller&&x._taskIds&&x._taskIds.length>1);
     const mergeMsg=mergedStop?` · Unificado en parada existente 🔗`:'';
     UI.toast(isSelf?`Añadido a tu ruta 🗺${extra}${mergeMsg}`:`Asignado a ${toEmp?.name} 🗺${extra}${mergeMsg}`,'ok');
-    if(mppMat)UI.toast('Tarea de material pendiente creada 📦','in',3500);
     ATR._pendingIds=[];
     ET.render();
   },
