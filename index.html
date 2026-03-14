@@ -59,7 +59,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .dp-header{background:var(--bg2);border-bottom:1px solid var(--bdr);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px;flex-shrink:0;position:sticky;top:0;z-index:10}
 .dp-back{width:36px;height:36px;border-radius:8px;background:var(--bg3);border:1px solid var(--bdr);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:all .12s}
 .dp-back:hover{background:var(--bg4)}
-.dp-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dp-sub{font-size:11px;color:var(--tx3)}
 .dp-body{flex:1;overflow-y:auto;padding:16px;max-width:860px;margin:0 auto;width:100%;padding-bottom:100px}
 .dp-footer{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;background:linear-gradient(0deg,var(--bg) 60%,transparent);display:flex;gap:8px}
@@ -104,7 +104,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Barlow',
 .fc:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acdim)}
 .fc::placeholder{color:var(--tx3)}
 select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233e5468' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
-textarea.fc{resize:vertical;min-height:60px;line-height:1.5}
+textarea.fc{resize:vertical;min-height:60px;line-height:1.5;text-transform:uppercase}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:440px){.frow{grid-template-columns:1fr}}
 
@@ -193,7 +193,7 @@ textarea.fc{resize:vertical;min-height:60px;line-height:1.5}
 .sc-hdr{padding:12px 13px;display:flex;align-items:center;gap:10px}
 .sc-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
 .sc-info{flex:1;min-width:0}
-.sc-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.sc-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .sc-type{font-size:12px;color:var(--tx3);margin-top:1px}
 .sc-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .ob{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
@@ -368,6 +368,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
   <nav class="tab-nav boss-nav">
     <button class="tab-btn active" data-bt="dash" onclick="App.btab('dash')">📊 Dashboard</button>
     <button class="tab-btn" data-bt="rutas" onclick="App.btab('rutas')">🗺 Rutas</button>
+    <button class="tab-btn" data-bt="registro" onclick="App.btab('registro')">📋 Registro</button>
     <button class="tab-btn" data-bt="verif" onclick="App.btab('verif')">✅ Verificar</button>
     <button class="tab-btn" data-bt="tareas" onclick="App.btab('tareas')">📣 Tareas</button>
     <button class="tab-btn" data-bt="talleres" onclick="App.btab('talleres')">🏭 Talleres</button>
@@ -378,6 +379,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
     <div id="bt-verif" class="tab-panel"></div>
     <div id="bt-tareas" class="tab-panel"></div>
     <div id="bt-talleres" class="tab-panel"></div>
+    <div id="bt-registro" class="tab-panel"></div>
   </div>
 </div>
 
@@ -670,7 +672,7 @@ tr:hover td{background:rgba(240,120,40,.025)}
         </div>
         <div class="fg" style="margin-top:6px">
           <label class="fl">Pedido / Notas</label>
-          <textarea id="et-campo-txt" class="fc" rows="10" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:vertical;min-height:160px"></textarea>
+          <textarea id="et-campo-txt" class="fc" rows="10" placeholder="Lista el material a entregar, referencias, detalles..." autocomplete="off" style="resize:vertical;min-height:160px;text-transform:uppercase"></textarea>
         </div>
       </div>
 
@@ -701,9 +703,10 @@ tr:hover td{background:rgba(240,120,40,.025)}
       <div class="fg">
         <label class="fl">Prioridad</label>
         <select id="et-pri" class="fc">
-          <option value="alta">🔴 Alta</option>
-          <option value="media" selected>🟡 Media</option>
-          <option value="baja">🟢 Baja</option>
+          <option value="alta">🔴 Alta (Hoy)</option>
+          <option value="media" selected>🟡 Media (Mañana)</option>
+          <option value="baja">🟢 No urge</option>
+          <option value="no_urge">🔵 Cuando pida</option>
         </select>
       </div>
     </div>
@@ -779,7 +782,7 @@ const _FB_CFG={
 firebase.initializeApp(_FB_CFG);
 const _fsdb=firebase.firestore();
 const FS_COL='mcl_data';
-const FS_KEYS=['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_cl','mc4_in','mc4_tmpl','mc4_mpp'];
+const FS_KEYS=['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_cl','mc4_in','mc4_tmpl','mc4_mpp','mc4_log'];
 
 const FireSync={
   _wt:{},_ready:false,
@@ -828,7 +831,7 @@ const FireSync={
   },
   _onRemote(key){
     // Refresh current visible tab when relevant data changes remotely
-    if(!['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_mpp'].includes(key))return;
+    if(!['mc4_tr','mc4_rt','mc4_bt','mc4_lc','mc4_mpp','mc4_log'].includes(key))return;
     try{
       const vb=document.getElementById('vb');
       const ve=document.getElementById('ve');
@@ -893,7 +896,7 @@ const LS={
     if(FS_KEYS.includes(k))FireSync.del(k);
   },
 };
-const K={TR:'mc4_tr',RT:'mc4_rt',BT:'mc4_bt',LC:'mc4_lc',IN:'mc4_in',TB:'mc4_tb',TMPL:'mc4_tmpl',CL:'mc4_cl',MPP:'mc4_mpp'};
+const K={TR:'mc4_tr',RT:'mc4_rt',BT:'mc4_bt',LC:'mc4_lc',IN:'mc4_in',TB:'mc4_tb',TMPL:'mc4_tmpl',CL:'mc4_cl',MPP:'mc4_mpp',LOG:'mc4_log'};
 /* ─── PREFERENCIAS DE USUARIO ─── */
 const PREF={
   _k:eid=>'mc4_pref_'+eid,
@@ -1079,7 +1082,12 @@ const BT={
   seenAll:()=>DB.map(K.BT,t=>({...t,seen:true})),
   seen:eid=>DB.map(K.BT,t=>t.eid===eid?{...t,seen:true}:t),
   setSt:(id,st)=>DB.map(K.BT,t=>t.id===id?{...t,st,doneAt:st==='comp'?nowMs():t.doneAt,doneBy:st==='comp'?App.emp?.id:t.doneBy}:t),
-  add:(text,notes,pri,createdBy,cat,taller,actType,colors=[])=>DB.push(K.BT,{id:uid(),text,notes:notes||'',pri:pri||'media',priDate:today(),st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||'',_colors:colors||[],_colorCant:'',_colorMarca:'',_colorAcab:''}),
+  add:(text,notes,pri,createdBy,cat,taller,actType,colors=[])=>{
+    const id=uid();
+    DB.push(K.BT,{id,text,notes:notes||'',pri:pri||'media',priDate:today(),st:'pend',seen:false,ca:nowMs(),createdBy:createdBy||App.emp?.id,eid:null,routeEid:null,cat:cat||'oficina',taller:taller||'',actType:actType||'',_colors:colors||[],_colorCant:'',_colorMarca:'',_colorAcab:''});
+    LOG.add('pedido_creado',{empId:createdBy||App.emp?.id,empName:getEmp(createdBy||App.emp?.id)?.name||'',taller:taller||text,cat,actType});
+    return id;
+  },
   del:id=>DB.set(K.BT,DB.all(K.BT).filter(t=>t.id!==id)),
   update:(id,fields)=>DB.map(K.BT,t=>t.id===id?{...t,...fields}:t),
   // Auto-delete: color tasks keep 30 days, others 24h
@@ -1378,6 +1386,7 @@ const App={
     let changed=false;
     DB.set(K.BT,DB.all(K.BT).map(t=>{
       if(t.st==='comp'||!t.ca)return t;
+      if(t.pri==='no_urge')return t; // nunca escala
       const priDate=t.priDate||t.ca; // date when priority was last set
       const daysDiff=Math.floor((new Date(todayStr)-new Date(priDate.toString().length===10?priDate:new Date(priDate).toISOString().slice(0,10)))/(1000*60*60*24));
       let newPri=t.pri||'media';
@@ -1438,7 +1447,7 @@ const App={
     document.querySelectorAll('[data-et]').forEach(b=>b.classList.toggle('active',b.dataset.et===tab));
     document.querySelectorAll('#ve .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('t-'+tab).classList.add('active');
-    if(tab==='tareas'){ET._search='';document.getElementById('t-tareas').innerHTML='';BT.seenAll();App._updBadge();}
+    if(tab==='tareas'){ET._qClient='';ET._qMat='';ET._searchOpen=false;document.getElementById('t-tareas').innerHTML='';BT.seenAll();App._updBadge();ET._filtersOpen=false;}
     ({fichar:EF.render,ruta:ER.render,equipo:EQ.render,tareas:ET.render,mpp:EMPP.render}[tab]||function(){})();
   },
 
@@ -1447,7 +1456,7 @@ const App={
     document.querySelectorAll('[data-bt]').forEach(b=>b.classList.toggle('active',b.dataset.bt===tab));
     document.querySelectorAll('#vb .tab-panel').forEach(p=>p.classList.remove('active'));
     document.getElementById('bt-'+tab).classList.add('active');
-    ({dash:BD.render,rutas:BR.render,verif:BV.render,tareas:BCom.render,talleres:BT_MGR.render}[tab]||function(){})();
+    ({dash:BD.render,rutas:BR.render,verif:BV.render,tareas:BCom.render,talleres:BT_MGR.render,registro:BLOG.render}[tab]||function(){})();
   },
 
   _updBadge(){
@@ -1574,7 +1583,7 @@ const EF={
       </div>${rtHtml}`;
   },
   _gps(cb){if(!navigator.geolocation){cb(null);return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>cb(null),{enableHighAccuracy:false,timeout:5000,maximumAge:60000})},
-  in(){EF._gps(loc=>{TR.in(App.emp.id,loc);UI.toast(MOTIVS[new Date().getDate()%MOTIVS.length].replace('{n}',App.emp.name),'ok',4000);EF.render()})},
+  in(){EF._gps(loc=>{TR.in(App.emp.id,loc);LOG.add('fichar_entrada',{empId:App.emp.id,empName:App.emp.name});UI.toast(MOTIVS[new Date().getDate()%MOTIVS.length].replace('{n}',App.emp.name),'ok',4000);EF.render()})},
   reopen(){
     UI.confirm('↩️ Volver a entrar','¿Quieres reabrir tu jornada? Se borrará el fichaje de salida de hoy.',()=>{
       TR.reopen(App.emp.id);
@@ -1584,8 +1593,8 @@ const EF={
       EF.render();
     });
   },
-  ls(){EF._gps(loc=>{TR.ls(App.emp.id,loc);UI.toast('Pausa iniciada 🍽️','in');EF.render()})},
-  le(){EF._gps(loc=>{TR.le(App.emp.id,loc);UI.toast('Jornada reanudada 💪','ok');EF.render()})},
+  ls(){EF._gps(loc=>{TR.ls(App.emp.id,loc);LOG.add('fichar_pausa',{empId:App.emp.id,empName:App.emp.name});UI.toast('Pausa iniciada 🍽️','in');EF.render()})},
+  le(){EF._gps(loc=>{TR.le(App.emp.id,loc);LOG.add('fichar_vuelta',{empId:App.emp.id,empName:App.emp.name});UI.toast('Jornada reanudada 💪','ok');EF.render()})},
   tryOut(){
     const rt=RT.today(App.emp.id),pend=rt.stops.filter(s=>!s.done);
     if(pend.length>0){
@@ -1607,6 +1616,7 @@ const EF={
   _doOut(){
     EF._gps(loc=>{
       TR.out(App.emp.id,loc);
+      LOG.add('fichar_salida',{empId:App.emp.id,empName:App.emp.name});
       // Generate WhatsApp summary
       const emp=App.emp;
       const r=TR.today(emp.id);
@@ -2010,11 +2020,11 @@ const DP={
       `<button class="btn btn-gh btn-sm" onclick="ETF.openEdit('${tid}');DP.close()" style="font-size:12px">✏️ Editar</button>`;
 
     let body='';
-    const priLabel={alta:'🔴 Alta',media:'🟡 Media',baja:'🟢 Baja'}[task.pri||'media']||'Media';
+    const priLabel={alta:'🔴 Alta (Hoy)',media:'🟡 Media (Mañana)',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[task.pri||'media']||'Media';
     body+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       <span class="badge ${cs.badge}" style="font-size:12px;padding:5px 12px">${cs.icon} ${cs.label}</span>
       ${at?`<span class="badge" style="background:${at.color}22;color:${at.color};border:1px solid ${at.color}44;font-size:12px;padding:5px 12px">${at.icon} ${at.label}</span>`:''}
-      <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[task.pri||'media']}" style="font-size:12px;padding:5px 12px">${priLabel}</span>
+      <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok','no_urge':'b-in'}[task.pri]||'b-wn'}" style="font-size:12px;padding:5px 12px">${priLabel}</span>
       ${task.routeEid?`<span class="badge b-ok" style="font-size:11px">🗺 ${task.routeEid===emp?.id?'En tu ruta':'Ruta de '+(getEmp(task.routeEid)?.name||task.routeEid)}</span>`:''}
     </div>`;
 
@@ -2327,6 +2337,7 @@ const SRM={
       const sessions=[...(rt.routeSessions||[])];
       sessions.push({startAt:nowMs(),startLat:lat,startLng:lng,endAt:null,endLat:null,endLng:null});
       RT.save(emp.id,today(),{...rt,routeSessions:sessions,routeStarted:true,routeEnded:false,routeStartedAt:nowMs(),routeStartLat:lat,routeStartLng:lng});
+      LOG.add('ruta_inicio',{empId:emp.id,empName:emp.name});
       UI.toast('🚐 ¡Ruta iniciada!','ok');
       ER.render();
       // Store in LC for boss to see
@@ -2353,6 +2364,7 @@ const SRM={
           sess[sess.length-1]={...sess[sess.length-1],endAt:nowMs(),endLat:lat,endLng:lng};
         }
         RT.save(emp.id,today(),{...rt,routeSessions:sess,routeEnded:true,routeEndedAt:nowMs(),routeEndLat:lat,routeEndLng:lng});
+        LOG.add('ruta_fin',{empId:emp.id,empName:emp.name,stops:rt.stops.filter(s=>s.done).length});
         // Store in LC for boss
         const locs=LS.g(K.LC)||{};
         if(!locs[emp.id])locs[emp.id]={};
@@ -2407,11 +2419,11 @@ const ER={
             inlineNote=`<div style="margin:6px 13px 8px;display:flex;flex-direction:column;gap:6px">
               ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
                 <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
-                <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
+                <div style="font-size:17px;font-weight:400;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
               </div>`).join('')}
             </div>`;
           }else if(cleanNote){
-            inlineNote=`<div style="margin:6px 13px 8px;border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(cleanNote)}</div>`;
+            inlineNote=`<div style="margin:6px 13px 8px;border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:17px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(cleanNote)}</div>`;
           }
           // Pink: material from previous order being served NOW
           if(mppPrevParts.length>0){
@@ -2449,7 +2461,7 @@ const ER={
               +'<div style="font-size:10px;font-weight:900;color:#c084fc;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.07em;margin-bottom:5px">🎨 COLOR ACABADO'+(allDoneR?' ✅':'')+'</div>'
               +allCols.map(c=>'<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:3px">'
                 +'<span style="font-size:14px">'+(c.done?'✅':'⏳')+'</span>'
-                +'<span style="color:#e9d5ff">'+esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))+'</span>'
+                +'<span style="color:#e9d5ff;font-size:15px;font-weight:500">'+esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))+'</span>'
                 +'</div>').join('')
               +'</div>';
           })()}
@@ -2769,6 +2781,7 @@ const EX={
               <button id="ex-pri-alta" class="btn btn-gh btn-sm" style="flex:1" onclick="EX._setPri('alta')">🔴 Alta</button>
               <button id="ex-pri-media" class="btn btn-pri btn-sm" style="flex:1" onclick="EX._setPri('media')">🟡 Media</button>
               <button id="ex-pri-baja" class="btn btn-gh btn-sm" style="flex:1" onclick="EX._setPri('baja')">🟢 Baja</button>
+              <button id="ex-pri-cuando_pida" class="btn btn-gh btn-sm" style="flex:1" onclick="EX._setPri('no_urge')">🔵 Cuando pida</button>
             </div>
           </div>
         </div>
@@ -2804,6 +2817,7 @@ const EX={
     RT.exec(App.emp.id,EX._sid,l?.lat??null,l?.lng??null,l?.acc??null,'');
     const allIds=stop._taskIds&&stop._taskIds.length>0?stop._taskIds:(stop._taskId?[stop._taskId]:[]);
     allIds.forEach(tid=>BT.setSt(tid,'comp'));
+    LOG.add('parada_hecha',{empId:App.emp.id,empName:App.emp?.name,taller:stop.taller,tipo:stop.type});
 
     const createTask=document.getElementById('ex-create-task')?.checked;
     if(createTask){
@@ -2849,7 +2863,7 @@ const EQ={
         return`<div style="padding:10px 14px;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:10px;${s.done?'opacity:.55':''}">
           <div style="width:24px;height:24px;border-radius:50%;background:${s.done?'var(--ok)':c.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">${s.done?'✓':i+1}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.taller)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.taller)}</div>
             <div style="font-size:11px;color:var(--tx3)">${t.icon} ${t.label}${s.est?` · ${s.est}`:''}${s.done&&s.doneAt?` · ✓ ${tStr(s.doneAt)}`:''}</div>
           </div>
           ${!s.done?`<button class="btn btn-wn btn-sm btn-ic" onclick="EQ.take('${c.id}','${s.id}')" title="Asumir esta parada" style="flex-shrink:0;font-size:12px">↙ Asumir</button>`:''}
@@ -2859,7 +2873,7 @@ const EQ={
       <div style="padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="EQ.toggle('${c.id}')">
         <div style="width:36px;height:36px;border-radius:50%;background:${c.color};display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">${c.av}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;text-transform:uppercase">${c.name}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;text-transform:uppercase">${c.name}</div>
           <div style="font-size:11px;color:var(--tx3)">${c.role}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
@@ -2891,33 +2905,68 @@ const EQ={
     });
   },
 };
-
 /* ─── TAREAS ─── */
 const ET={
   _filter:null,
   _search:'',
   _showComp:false,
-  _sort:'new', // 'new' | 'old' | 'az' | 'pri'
+  _sort:'new',
+  _searchOpen:false,
+  _filtersOpen:false,
+  _qClient:'',
+  _qMat:'',
   render(){
     const emp=App.emp;if(!emp)return;
     const panel=document.getElementById('t-tareas');
     if(!document.getElementById('et-list')){
       panel.innerHTML=`
         <div class="sh"><div class="st">Tareas del Equipo</div>
-          <button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn btn-gh btn-sm" onclick="ET._toggleSearch()" id="et-search-btn" title="Buscar" style="font-size:18px;padding:6px 10px">🔍</button>
+            <button class="btn btn-gh btn-sm" onclick="ET._toggleFilters()" id="et-filters-btn" style="padding:6px 12px;font-size:13px;font-weight:700">⚙️ Filtros</button>
+            <button class="btn btn-pri btn-sm" onclick="ETF.open()">+ Nueva</button>
+          </div>
         </div>
-        <div style="position:relative;margin-bottom:10px">
-          <input id="et-search" class="fc" placeholder="🔍 Buscar tareas..." oninput="ET.search(this.value)" style="padding-left:14px" autocomplete="off">
+        <div id="et-search-panel" style="display:none;margin-bottom:10px;flex-direction:column;gap:8px">
+          <input id="et-q-client" class="fc" placeholder="👤 Nombre de cliente / taller..." oninput="ET._onSearch()" autocomplete="off">
+          <input id="et-q-mat" class="fc" placeholder="📦 Material, código, referencia..." oninput="ET._onSearch()" autocomplete="off">
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;overflow-x:auto;padding-bottom:2px" id="et-filters"></div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;align-items:center">
-          <span style="font-size:11px;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;flex-shrink:0">Orden:</span>
-          <div id="et-sort" style="display:flex;gap:5px"></div>
+        <div id="et-filters-panel" style="display:none;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tipo de tarea</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="et-filters"></div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Ordenar por</div>
+          <div id="et-sort" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
         </div>
         <div id="et-list"></div>`;
+      document.getElementById('et-search-panel').style.display='none';
     }
     ET._renderFilters();
     ET._renderSort();
+    ET._renderActiveFilters();
+    ET._renderList();
+  },
+  _toggleSearch(){
+    ET._searchOpen=!ET._searchOpen;
+    const p=document.getElementById('et-search-panel');
+    if(p)p.style.display=ET._searchOpen?'flex':'none';
+    const btn=document.getElementById('et-search-btn');
+    if(btn)btn.style.background=ET._searchOpen?'rgba(96,165,250,.25)':'';
+    if(ET._searchOpen)setTimeout(()=>document.getElementById('et-q-client')?.focus(),50);
+    else{ET._qClient='';ET._qMat='';const qc=document.getElementById('et-q-client');const qm=document.getElementById('et-q-mat');if(qc)qc.value='';if(qm)qm.value='';ET._renderList();}
+  },
+  _toggleFilters(){
+    ET._filtersOpen=!ET._filtersOpen;
+    const p=document.getElementById('et-filters-panel');
+    if(p)p.style.display=ET._filtersOpen?'block':'none';
+    const btn=document.getElementById('et-filters-btn');
+    if(btn)btn.style.background=ET._filtersOpen?'rgba(96,165,250,.25)':'';
+  },
+  _renderActiveFilters(){}, // chips are rendered inside _renderList for reliability
+  _onSearch(){
+    ET._qClient=(document.getElementById('et-q-client')?.value||'').toLowerCase().trim();
+    ET._qMat=(document.getElementById('et-q-mat')?.value||'').toLowerCase().trim();
     ET._renderList();
   },
   _renderFilters(){
@@ -2926,50 +2975,62 @@ const ET={
       `<button class="btn btn-sm ${ET._filter===null?'btn-pri':'btn-gh'}" onclick="ET.filter(null)">Todas</button>`+
       `<button class="btn btn-sm ${ET._filter==='campo'?'btn-pri':'btn-gh'}" onclick="ET.filter('campo')">🏭 Pedidos</button>`+
       `<button class="btn btn-sm ${ET._filter==='albfac'?'btn-pri':'btn-gh'}" onclick="ET.filter('albfac')">🧾 Alb. y Fact.</button>`+
-      `<button class="btn btn-sm ${ET._filter==='color'?'btn-pri':'btn-gh'}" onclick="ET.filter('color')" style="${ET._filter==='color'?'':''}">🎨 Color</button>`+
+      `<button class="btn btn-sm ${ET._filter==='color'?'btn-pri':'btn-gh'}" onclick="ET.filter('color')">🎨 Color</button>`+
       `<button class="btn btn-sm ${ET._filter==='oficina'?'btn-pri':'btn-gh'}" onclick="ET.filter('oficina')">💼 Oficina</button>`+
       `<button class="btn btn-sm ${ET._filter==='almacen'?'btn-pri':'btn-gh'}" onclick="ET.filter('almacen')">📦 Almacén</button>`;
   },
   _renderSort(){
     const el=document.getElementById('et-sort');if(!el)return;
-    const opts=[
-      {k:'new',label:'🕐 Más reciente'},
-      {k:'old',label:'🕰 Más antiguo'},
-      {k:'az', label:'🔤 A–Z'},
-      {k:'pri',label:'🔥 Prioridad'},
-    ];
+    const opts=[{k:'new',label:'🕐 Más reciente'},{k:'old',label:'🕰 Más antiguo'},{k:'az',label:'🔤 A–Z'},{k:'pri',label:'🔥 Prioridad'}];
     el.innerHTML=opts.map(o=>`<button class="btn btn-sm ${ET._sort===o.k?'btn-pri':'btn-gh'}" onclick="ET.setSort('${o.k}')">${o.label}</button>`).join('');
   },
-  setSort(s){ET._sort=s;ET._renderSort();ET._renderList();},
+  setSort(s){ET._sort=s;ET._renderSort();ET._renderActiveFilters();ET._renderList();},
+  filter(cat){ET._filter=cat;ET._renderFilters();ET._renderActiveFilters();ET._renderList();},
   _renderList(){
     const emp=App.emp;if(!emp)return;
     const el=document.getElementById('et-list');if(!el)return;
-    const q=ET._search.toLowerCase().trim();
-    const priOrder={alta:0,media:1,baja:2};
+    const qClient=ET._qClient||'';
+    const qMat=ET._qMat||'';
+    const priOrder={alta:0,media:1,baja:2,no_urge:3};
     let all=BT.all().filter(t=>{
       // COLOR TAB: evaluated first – never blocked by routeEid or comp status
       if(ET._filter==='color'){
         if(!hasAnyColors(t)||t.cat!=='campo')return false;
-        // Hide only if ALL colors are done AND not showing completed
         if(getTaskColors(t).every(c=>c.done)&&!ET._showComp)return false;
-        if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
-        return true; // bypass all other checks – color tab is independent
+        // Client filter
+        if(qClient){const hay=(t.taller||t.text||'').toLowerCase();if(!hay.includes(qClient))return false;}
+        // Material filter: search inside color fields (cant, marca, acab, id) AND notes
+        if(qMat){
+          const colors=getTaskColors(t);
+          const colorHay=colors.map(c=>[c.cant,c.marca,c.acab,c.id].join(' ')).join(' ').toLowerCase();
+          const noteHay=(t.notes||'').toLowerCase();
+          if(!colorHay.includes(qMat)&&!noteHay.includes(qMat))return false;
+        }
+        return true;
       }
       // All other tabs
       if(t.cat==='campo'&&t.routeEid)return false;
       if(t._mpp&&t.routeEid)return false;
       if(!ET._showComp&&t.st==='comp')return false;
-      if(ET._filter){
-        if(t.cat!==ET._filter)return false;
-      }
-      if(q){const hay=(t.text||'')+(t.notes||'')+(t.taller||'');if(!hay.toLowerCase().includes(q))return false;}
+      if(ET._filter){if(t.cat!==ET._filter)return false;}
+      // Client filter: taller/text
+      if(qClient){const hay=(t.taller||t.text||'').toLowerCase();if(!hay.includes(qClient))return false;}
+      // Material filter: notes + text
+      if(qMat){const hay=(t.notes||'').toLowerCase()+(t.text||'').toLowerCase();if(!hay.includes(qMat))return false;}
       return true;
     });
     // Apply sort
     if(ET._sort==='new') all.sort((a,b)=>b.ca-a.ca);
     else if(ET._sort==='old') all.sort((a,b)=>a.ca-b.ca);
     else if(ET._sort==='az') all.sort((a,b)=>(a.text||'').localeCompare(b.text||'','es'));
-    else if(ET._sort==='pri') all.sort((a,b)=>(priOrder[a.pri||'media']||1)-(priOrder[b.pri||'media']||1));
+    else if(ET._sort==='pri') all.sort((a,b)=>{const va=priOrder[a.pri??'media'];const vb=priOrder[b.pri??'media'];return (va==null?1:va)-(vb==null?1:vb);});
+    // Build active filter chips — always rebuilt here for guaranteed correctness
+    const _chipFL={campo:'🏭 Pedidos',albfac:'🧾 Alb./Fact.',color:'🎨 Color',oficina:'💼 Oficina',almacen:'📦 Almacén'};
+    const _chipSL={old:'Más antiguo',az:'A-Z',pri:'Prioridad'};
+    let _chipHtml='';
+    if(ET._filter!==null)_chipHtml+=`<button onclick="ET.filter(null)" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;background:rgba(96,165,250,.2);border:1px solid rgba(96,165,250,.4);font-size:12px;font-weight:700;color:#60a5fa;cursor:pointer;margin-bottom:8px">${_chipFL[ET._filter]||ET._filter} ✕</button>`;
+    if(ET._sort!=='new')_chipHtml+=`<button onclick="ET.setSort('new')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:100px;background:rgba(96,165,250,.2);border:1px solid rgba(96,165,250,.4);font-size:12px;font-weight:700;color:#60a5fa;cursor:pointer;margin-bottom:8px;margin-left:6px">${_chipSL[ET._sort]||ET._sort} ✕</button>`;
+    const _chipsDiv=_chipHtml?`<div>${_chipHtml}</div>`:'';
     const compCount=BT.all().filter(t=>t.st==='comp'&&!(t.cat==='campo'&&t.routeEid)).length;
     const toggleBtn=compCount>0?`<div style="text-align:center;margin:8px 0">
       <button class="btn btn-gh btn-sm" onclick="ET._showComp=!ET._showComp;ET._renderList()">
@@ -2999,11 +3060,11 @@ const ET={
           inlineNotes=`<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
             ${parts.map(p=>`<div style="border-left:3px solid var(--er);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0">
               <div style="font-size:10px;font-weight:900;color:var(--er);font-family:'Barlow Condensed',sans-serif;letter-spacing:.06em;margin-bottom:2px">PEDIDO ${p.n}</div>
-              <div style="font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
+              <div style="font-size:17px;font-weight:400;color:var(--tx);white-space:pre-wrap;line-height:1.5">${escNL(p.text)}</div>
             </div>`).join('')}
           </div>`;
         }else if(displayPedido&&!isMppTask){
-          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:13px;color:var(--tx);white-space:pre-wrap;line-height:1.5;margin-bottom:${noteMpp?'6':'8'}px">${escNL(displayPedido)}</div>`;
+          inlineNotes=`<div style="border-left:3px solid var(--acc);padding:6px 10px;background:rgba(255,255,255,.04);border-radius:0 6px 6px 0;font-size:17px;color:var(--tx);white-space:pre-wrap;line-height:1.5;text-transform:uppercase;margin-bottom:${noteMpp?'6':'8'}px">${escNL(displayPedido)}</div>`;
         }
         if(noteMpp||isMppTask){
           const mppText=isMppTask?MPP.split(t.notes).mpp:noteMpp;
@@ -3023,29 +3084,29 @@ const ET={
           <div style="font-size:10px;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">🎨 Color Acabado</div>
           ${tColors.map(c=>`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
             <span style="font-size:14px;flex-shrink:0">${c.done?'✅':'⏳'}</span>
-            <span style="font-size:12px;color:var(--tx)">${esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))}</span>
+            <span style="font-size:16px;font-weight:500;color:var(--tx)">${esc([c.cant,c.marca,c.acab].filter(Boolean).join(' · '))}</span>
           </div>`).join('')}
         </div>`;
       }
       return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%);cursor:pointer" onclick="DP.openTask('${t.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
-            ${at?`<span style="font-size:11px;color:var(--tx3)">${at.icon} ${at.label}</span>`:''}
+            <span class="badge ${cs.badge}" style="font-size:13px;padding:4px 10px">${cs.icon} ${cs.label}</span>
+            ${at?`<span style="font-size:14px;color:var(--tx3);font-weight:600">${at.icon} ${at.label}</span>`:''}
           </div>
-          ${caStr?`<span style="font-size:10px;color:var(--tx3);flex-shrink:0">📅 ${caStr}</span>`:''}
+          ${caStr?`<span style="font-size:14px;color:var(--tx3);font-family:'Barlow Condensed',sans-serif;font-weight:700;flex-shrink:0">📅 ${caStr}</span>`:''}
         </div>
         ${t.taller?`<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;line-height:1.1">${esc(t.taller)}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;text-transform:uppercase;color:var(--wn);letter-spacing:.02em;line-height:1.1">${esc(t.taller)}</div>
           ${t.docTipo?`<span style="font-size:13px;font-weight:700;color:#dc50b4;white-space:nowrap">${{albaran:'📄 Albarán',albfac:'📄🧾 Alb + Fra',contado:'💵 Contado'}[t.docTipo]||t.docTipo}</span>`:''}
           ${mppBadge}
         </div>`:''}
         <div style="flex:1;min-width:0;margin-bottom:7px">
-          ${(t.cat!=='campo'&&t.cat!=='albfac'||(t.cat==='campo'&&t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:${t.taller?'none':'uppercase'};color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escNL(t.text)}</div>`:''}
+          ${(t.cat!=='campo'&&t.cat!=='albfac'||(t.cat==='campo'&&t.text&&t.text!==t.taller))?`<div style="font-size:${t.taller?'14px':'18px'};font-weight:${t.taller?'500':'800'};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;color:${t.taller?'#cdd6f4':'var(--tx)'};line-height:1.4;margin-bottom:${t.taller?'2px':'3px'};white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escNL(t.text)}</div>`:''}
           ${colorInline}
           ${inlineNotes}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
-            <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok'}[t.pri||'media']}" style="font-size:10px">${(t.pri||'media').toUpperCase()}</span>
+            <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok',no_urge:'b-in'}[t.pri]||'b-wn'}" style="font-size:13px;padding:4px 10px">${{alta:'ALTA (HOY)',media:'MEDIA (MAÑANA)',baja:'NO URGE',no_urge:'CUANDO PIDA'}[t.pri]||'MEDIA'}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
           </div>
         </div>
@@ -3072,7 +3133,7 @@ const ET={
       </div>`;
     };
     const colorCard=t=>{
-      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80'}[t.pri||'media']||'#facc15';
+      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80',no_urge:'#60a5fa'}[t.pri]||'#facc15';
       const caDate=t.ca?new Date(t.ca):null;
       const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1}`:'';
       const colors=getTaskColors(t);
@@ -3081,26 +3142,33 @@ const ET={
       return`<div class="bt" style="border-left:3px solid rgba(160,80,240,.6);background:linear-gradient(135deg,rgba(160,80,240,.1) 0%,transparent 60%)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
             ${allDone?`<span style="font-size:13px">✅</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${caStr?`<span style="font-size:11px;color:var(--tx3)">📅 ${caStr}</span>`:''}
-            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴 Alta',media:'🟡 Media',baja:'🟢 Baja'}[t.pri||'media']||'🟡'}</span>
+            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴 Alta (Hoy)',media:'🟡 Media (Mañana)',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[t.pri]||'🟡'}</span>
           </div>
         </div>
         ${colors.map(c=>`
-          <div style="background:rgba(160,80,240,.12);border:1px solid rgba(160,80,240,.35);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+          <div
+            style="background:${c.done?'rgba(74,222,128,.1)':'rgba(160,80,240,.12)'};border:1px solid ${c.done?'rgba(74,222,128,.35)':'rgba(160,80,240,.35)'};border-radius:8px;padding:8px 10px;margin-bottom:6px;user-select:none;-webkit-user-select:none"
+            ontouchstart="ET._clrLongStart('${t.id}','${c.id}',this)"
+            ontouchend="ET._clrLongCancel()"
+            ontouchmove="ET._clrLongCancel()"
+            oncontextmenu="event.preventDefault();ET.colorEdit('${t.id}','${c.id}')"
+          >
             <div style="display:flex;align-items:flex-start;gap:8px">
               <div style="flex:1;min-width:0">
-                ${c.cant?`<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Cant.</span><span style="font-size:13px;color:var(--tx)">${esc(c.cant)}</span></div>`:''}
-                ${c.marca?`<div style="display:flex;gap:6px;margin-bottom:3px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Marca</span><span style="font-size:13px;color:var(--tx)">${esc(c.marca)}</span></div>`:''}
-                ${c.acab?`<div style="display:flex;gap:6px"><span style="font-size:11px;font-weight:700;color:#c084fc;min-width:65px;flex-shrink:0;text-transform:uppercase">Acabado</span><span style="font-size:13px;color:var(--tx)">${esc(c.acab)}</span></div>`:''}
+                ${c.cant?`<div style="display:flex;gap:6px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#c084fc;min-width:72px;flex-shrink:0;text-transform:uppercase">Cant.</span><span style="font-size:17px;font-weight:600;color:var(--tx)">${esc(c.cant)}</span></div>`:''}
+                ${c.marca?`<div style="display:flex;gap:6px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#c084fc;min-width:72px;flex-shrink:0;text-transform:uppercase">Marca</span><span style="font-size:17px;font-weight:600;color:var(--tx)">${esc(c.marca)}</span></div>`:''}
+                ${c.acab?`<div style="display:flex;gap:6px"><span style="font-size:12px;font-weight:700;color:#c084fc;min-width:72px;flex-shrink:0;text-transform:uppercase">Acabado</span><span style="font-size:17px;font-weight:600;color:var(--tx)">${esc(c.acab)}</span></div>`:''}
               </div>
-              <div style="flex-shrink:0;padding-top:2px">
+              <div style="flex-shrink:0;padding-top:2px;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
                 ${c.done
-                  ?`<span style="font-size:22px;line-height:1">✅</span>`
-                  :`<button class="btn btn-ok btn-sm" style="padding:5px 10px;font-size:12px;white-space:nowrap" onclick="event.stopPropagation();ET.colorDone('${t.id}','${c.id}')">✅ Hecho</button>`
+                  ?`<span style="font-size:22px;line-height:1">✅</span>
+                    <button class="btn btn-sm" style="padding:3px 8px;font-size:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#f87171;white-space:nowrap" onclick="event.stopPropagation();ET.colorUndo('${t.id}','${c.id}')">↩ Revertir</button>`
+                  :`<button class="btn btn-sm" style="padding:5px 10px;font-size:12px;white-space:nowrap;background:#2563eb;border:none;color:#fff;font-weight:700" onclick="event.stopPropagation();ET.colorDone('${t.id}','${c.id}')">HECHO</button>`
                 }
               </div>
             </div>
@@ -3112,7 +3180,7 @@ const ET={
         </div>
       </div>`;
     };
-    el.innerHTML=(all.length===0
+    el.innerHTML=_chipsDiv+(all.length===0
       ?`<div class="es"><div class="ei">${q?'🔍':ET._filter==='color'?'🎨':'📌'}</div><div class="et">${q?'Sin resultados':ET._filter==='color'?'Sin colores pendientes':'Sin tareas pendientes'}</div>${q?'<div class="ed">Prueba con otro término de búsqueda</div>':''}</div>`
       :all.map(ET._filter==='color'?colorCard:th).join(''))+toggleBtn;
   },
@@ -3120,8 +3188,70 @@ const ET={
     const t=BT.all().find(x=>x.id===taskId);if(!t)return;
     const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,done:true,doneAt:nowMs()}:c);
     BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
+    LOG.add('color_hecho',{empId:App.emp?.id,empName:App.emp?.name,taller:t.taller||t.text});
     globalRender();
     UI.toast('Color marcado como hecho ✅','ok');
+  },
+  colorUndo(taskId,colorId){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    UI.confirm('↩ Revertir color','¿Desmarcar este color como hecho?',()=>{
+      const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,done:false,doneAt:null}:c);
+      BT.update(taskId,{_colors:colors});
+      globalRender();
+      UI.toast('Color revertido','wn');
+    });
+  },
+  colorEdit(taskId,colorId){
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const c=getTaskColors(t).find(x=>x.id===colorId);if(!c)return;
+    const mid='color-edit-modal';
+    let el=document.getElementById(mid);
+    if(!el){
+      el=document.createElement('div');el.id=mid;el.className='mo hidden';
+      el.innerHTML=`<div class="md" style="max-width:420px">
+        <div class="mh"><span class="mt">🎨 Editar Color</span><button class="mc" onclick="UI.hm('${mid}')">✕</button></div>
+        <div class="mb" style="display:flex;flex-direction:column;gap:10px">
+          <div class="fg"><label class="fl">Cantidad</label><input id="ce-cant" class="fc" autocomplete="off"></div>
+          <div class="fg"><label class="fl">Marca / Código</label><input id="ce-marca" class="fc" autocomplete="off"></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Acabado</label><input id="ce-acab" class="fc" autocomplete="off"></div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-gh f1" onclick="UI.hm('${mid}')">Cancelar</button>
+          <button class="btn btn-ok f1" onclick="ET._saveColorEdit()">💾 Guardar</button>
+        </div>
+      </div>`;
+      document.body.appendChild(el);
+    }
+    ET._colorEditTaskId=taskId;ET._colorEditColorId=colorId;
+    document.getElementById('ce-cant').value=c.cant||'';
+    document.getElementById('ce-marca').value=c.marca||'';
+    document.getElementById('ce-acab').value=c.acab||'';
+    UI.sm(mid);
+    setTimeout(()=>document.getElementById('ce-cant')?.focus(),100);
+  },
+  _colorEditTaskId:null,_colorEditColorId:null,
+  _saveColorEdit(){
+    const taskId=ET._colorEditTaskId;const colorId=ET._colorEditColorId;
+    if(!taskId||!colorId)return;
+    const t=BT.all().find(x=>x.id===taskId);if(!t)return;
+    const cant=(document.getElementById('ce-cant')?.value||'').trim();
+    const marca=(document.getElementById('ce-marca')?.value||'').trim();
+    const acab=(document.getElementById('ce-acab')?.value||'').trim();
+    const colors=getTaskColors(t).map(c=>c.id===colorId?{...c,cant,marca,acab}:c);
+    BT.update(taskId,{_colors:colors});
+    UI.hm('color-edit-modal');
+    globalRender();
+    UI.toast('Color actualizado ✅','ok');
+  },
+  _clrLongTimer:null,
+  _clrLongStart(taskId,colorId,el){
+    ET._clrLongTimer=setTimeout(()=>{
+      if(navigator.vibrate)navigator.vibrate(40);
+      ET.colorEdit(taskId,colorId);
+    },600);
+  },
+  _clrLongCancel(){
+    clearTimeout(ET._clrLongTimer);ET._clrLongTimer=null;
   },
   _takeOverPrep(tid, whoName){
     UI.confirm(
@@ -3158,6 +3288,7 @@ const ET={
       UI.toast(`Ya lo está preparando ${who}`,'wn');return;
     }
     BT.update(tid,{preparingBy:emp.id,preparedLines:t.preparedLines||[]});
+    LOG.add('pedido_preparando',{empId:emp.id,empName:emp.name,taller:t.taller||t.text});
     DP.openTask(tid); // abrir primero, globalRender al cerrar
   },
   stopPrep(tid){
@@ -3290,13 +3421,14 @@ const ET={
       ()=>{
         const colors=getTaskColors(t).map(c=>({...c,done:true,doneAt:nowMs()}));
         BT.update(taskId,{_colors:colors,_colorCant:'',_colorMarca:'',_colorAcab:''});
+        LOG.add('color_hecho',{empId:App.emp?.id,empName:App.emp?.name,taller:t.taller||t.text,todos:true});
         globalRender();
         UI.toast('Todos los colores marcados como hechos ✅','ok');
       }
     );
   },
   filter(cat){ET._filter=cat;ET._renderFilters();ET._renderList()},
-  search(val){ET._search=val;ET._renderList()},
+  search(val){ET._qClient=val;ET._renderList()},
   toTaller(id){
     const task=BT.all().find(t=>t.id===id);if(!task)return;
     ET._toTallerId=id;
@@ -3333,6 +3465,7 @@ const ET={
     UI.confirm('✅ Completar tarea',`¿Marcar esta tarea de ${label} como completada?`,()=>{
       const doComplete=(lat,lng,acc)=>{
         DB.map(K.BT,t=>t.id===id?{...t,st:'comp',doneAt:nowMs(),doneBy:App.emp?.id,gLat:lat??null,gLng:lng??null,gAcc:acc??null}:t);
+        LOG.add('tarea_completada',{empId:App.emp?.id,empName:App.emp?.name,taller:task.taller||task.text,cat:task.cat});
         ET._renderList();App._updBadge();UI.toast('Tarea completada ✅','ok');
       };
       if(navigator.geolocation){
@@ -3841,17 +3974,17 @@ const BCom={
       return true;
     });
     const colorCard=t=>{
-      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80'}[t.pri||'media']||'#facc15';
+      const priColor={alta:'#f87171',media:'#facc15',baja:'#4ade80',no_urge:'#60a5fa'}[t.pri]||'#facc15';
       const caDate=t.ca?new Date(t.ca):null;
       const caStr=caDate?`${caDate.getDate()}/${caDate.getMonth()+1}`:'';
       const bColors=getTaskColors(t);
       const allDone=bColors.length>0&&bColors.every(c=>c.done);
       return`<div class="bt" style="border-left:3px solid rgba(160,80,240,.6);background:linear-gradient(135deg,rgba(160,80,240,.1) 0%,transparent 60%)${allDone?';opacity:.65':''}">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#ffb828">${esc(t.taller||t.text)}</div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${caStr?`<span style="font-size:11px;color:var(--tx3)">📅 ${caStr}</span>`:''}
-            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴',media:'🟡',baja:'🟢'}[t.pri||'media']||'🟡'}</span>
+            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴',media:'🟡',baja:'🟢',no_urge:'🔵'}[t.pri]||'🟡'}</span>
           </div>
         </div>
         ${bColors.map(c=>`
@@ -3884,7 +4017,7 @@ const BCom={
       const at2=AT[t.actType]||null;
       return`<div class="bt" style="border-left:3px solid ${cs.border};background:linear-gradient(135deg,${cs.bg} 0%,transparent 60%)">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <span class="badge ${cs.badge}" style="font-size:10px">${cs.icon} ${cs.label}</span>
+          <span class="badge ${cs.badge}" style="font-size:13px;padding:4px 10px">${cs.icon} ${cs.label}</span>
           ${t.taller?`<span style="font-size:12px;font-weight:600;color:var(--tx2)">🏪 ${esc(t.taller)}</span>`:''}
           ${at2?`<span style="font-size:11px;color:var(--tx3)">${at2.icon} ${at2.label}</span>`:''}
         </div>
@@ -3963,7 +4096,7 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off"></textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta</option><option value="media" selected>🟡 Media</option><option value="baja">🟢 Baja</option></select></div>
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta (Hoy)</option><option value="media" selected>🟡 Media (Mañana)</option><option value="baja">🟢 No urge</option><option value="no_urge">🔵 Cuando pida</option></select></div>
       <div id="bt-color-toggle-row" style="display:none;margin-top:4px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
           <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)">
@@ -4061,7 +4194,7 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section" style="display:${t.cat==='campo'?'none':'block'}"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." value="${esc(t.cat!=='campo'?t.text||'':'')}" autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off">${esc(t.notes||'')}</textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 Baja</option></select></div>
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta (Hoy)</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media (Mañana)</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 No urge</option><option value="no_urge" ${t.pri==='no_urge'?'selected':''}>🔵 Cuando pida</option></select></div>
       <div id="bt-color-toggle-row" style="display:${(t.cat==='campo'||t.cat==='oficina')?'block':'none'};margin-top:4px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
           <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)" ${(t._colorCant||t._colorMarca||t._colorAcab)?'checked':''}>
@@ -4099,7 +4232,7 @@ const ATR={
     const catInfo={campo:'🏭 Taller',almacen:'📦 Almacén',oficina:'💼 Oficina'}[task.cat]||'';
     document.getElementById('atr-task-info').innerHTML=`
       <div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;color:var(--wn);margin-bottom:6px">${esc(task.taller||task.text)}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;text-transform:uppercase;color:var(--wn);margin-bottom:6px">${esc(task.taller||task.text)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
           ${catInfo?`<span class="badge ${CAT_STYLE[task.cat]?.badge||'b-wn'}" style="font-size:10px">${catInfo}</span>`:''}
           ${task.actType?`<span class="badge b-ok" style="font-size:10px">${at.icon} ${at.label}</span>`:''}
@@ -4125,7 +4258,7 @@ const ATR={
           <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:8px;cursor:pointer;border:1px solid var(--bdr)">
             <input type="checkbox" id="atr-chk-${t.id}" style="margin-top:3px;flex-shrink:0;width:20px;height:20px;accent-color:var(--acc)" onchange="ATR._togglePending('${t.id}',this.checked)">
             <div style="flex:1;min-width:0">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;text-transform:uppercase;color:var(--wn);margin-bottom:5px">${esc(t.taller||t.text)}</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;text-transform:uppercase;color:var(--wn);margin-bottom:5px">${esc(t.taller||t.text)}</div>
               ${t.notes?`<div style="font-size:14px;color:var(--tx);white-space:pre-wrap;line-height:1.55;background:rgba(255,255,255,.05);border-radius:6px;padding:8px 10px;border-left:3px solid var(--acc)">${escNL(t.notes)}</div>`:''}
               ${!t.notes&&t.text!==t.taller?`<div style="font-size:13px;color:var(--tx2);margin-top:3px">${esc(t.text)}</div>`:''}
               <div style="font-size:11px;color:var(--tx3);margin-top:6px">${{campo:'🏭 Taller',almacen:'📦 Almacén',oficina:'💼 Oficina'}[t.cat]||''}</div>
@@ -4256,6 +4389,7 @@ const ATR={
       }
     }
     BT.assignToRoute(ATR._tid,toEid,type,taller,combinedNotes,'',mppMat,mppTaskId);
+    LOG.add('pedido_ruta',{empId:App.emp?.id,empName:App.emp?.name,taller,asignadoA:getEmp(toEid)?.name||toEid,tipo:type});
     UI.hm('atr-modal');
     const toEmp=getEmp(toEid);
     const isSelf=toEid===App.emp?.id;
@@ -4647,6 +4781,229 @@ const BT_MGR={
       BT_MGR.render();
     });
   },
+};
+
+/* ─── ACTIVITY LOG ─── */
+const LOG={
+  // Event type metadata: icon, label, color
+  _meta:{
+    fichar_entrada:  {icon:'⏱',label:'Fichaje entrada',   color:'#4ade80'},
+    fichar_salida:   {icon:'🏠',label:'Fichaje salida',    color:'#94a3b8'},
+    fichar_pausa:    {icon:'🍽️',label:'Pausa comida',      color:'#facc15'},
+    fichar_vuelta:   {icon:'▶️',label:'Vuelta de pausa',   color:'#60a5fa'},
+    fichar_reentrada:{icon:'↩️',label:'Reapertura jornada',color:'#a78bfa'},
+    ruta_inicio:     {icon:'🚐',label:'Inicio de ruta',    color:'#34d399'},
+    ruta_fin:        {icon:'🏁',label:'Fin de ruta',         color:'#f97316'},
+    parada_hecha:    {icon:'✅',label:'Parada completada',   color:'#4ade80'},
+    pedido_creado:   {icon:'📝',label:'Tarea creada',        color:'#60a5fa'},
+    pedido_preparando:{icon:'📦',label:'Inicio preparación', color:'#fbbf24'},
+    pedido_ruta:     {icon:'🗺',label:'Pedido a ruta',       color:'#a78bfa'},
+    color_hecho:     {icon:'🎨',label:'Color acabado hecho', color:'#f472b6'},
+    tarea_completada:{icon:'☑️',label:'Tarea completada',    color:'#34d399'},
+  },
+  all(){ try{return JSON.parse(localStorage.getItem(K.LOG)||'[]')}catch(e){return[]} },
+  add(type, data){
+    const emp=App.emp;
+    const entry={
+      id:uid(),
+      ts:nowMs(),
+      date:today(),
+      type,
+      empId: data.empId||emp?.id||'boss',
+      empName: data.empName||emp?.name||'',
+      ...data
+    };
+    const logs=LOG.all();
+    logs.push(entry);
+    localStorage.setItem(K.LOG,JSON.stringify(logs));
+    // Sync to Firebase (debounced via FireSync)
+    FireSync.write(K.LOG,logs);
+  },
+  byDate(dateStr){ return LOG.all().filter(e=>e.date===dateStr); },
+  byDateEmp(dateStr,empId){ return LOG.byDate(dateStr).filter(e=>e.empId===empId); },
+  datesWithActivity(){
+    const dates=new Set(LOG.all().map(e=>e.date));
+    return [...dates].sort().reverse();
+  }
+};
+
+/* ─── BOSS REGISTRO ─── */
+const BLOG={
+  _selDate: today(),
+  _selEmp: 'all',
+  _viewYear: new Date().getFullYear(),
+  _viewMonth: new Date().getMonth(), // 0-11
+
+  render(){
+    const el=document.getElementById('bt-registro');if(!el)return;
+    const allLogs=LOG.all();
+
+    // Emp filter buttons
+    const empFilter=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-sm ${BLOG._selEmp==='all'?'btn-pri':'btn-gh'}" onclick="BLOG._setEmp('all')">Todos</button>
+      ${EMPS.map(e=>`<button class="btn btn-sm ${BLOG._selEmp===e.id?'btn-pri':'btn-gh'}" style="${BLOG._selEmp===e.id?'background:'+e.color+'33;border-color:'+e.color+';':''}" onclick="BLOG._setEmp('${e.id}')">${e.name}</button>`).join('')}
+    </div>`;
+
+    // Month navigation
+    const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const nowD=new Date();
+    const isCurrentMonth=BLOG._viewMonth===nowD.getMonth()&&BLOG._viewYear===nowD.getFullYear();
+    const monthNav=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <button class="btn btn-gh btn-sm" onclick="BLOG._prevMonth()">◀ Anterior</button>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--tx)">
+        ${months[BLOG._viewMonth]} ${BLOG._viewYear}
+      </div>
+      <button class="btn btn-gh btn-sm" onclick="BLOG._nextMonth()" ${isCurrentMonth?'disabled style="opacity:.3;pointer-events:none"':''}>Siguiente ▶</button>
+    </div>`;
+
+    // Build all days in the viewed month
+    const daysInMonth=new Date(BLOG._viewYear,BLOG._viewMonth+1,0).getDate();
+    const daysList=[];
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${BLOG._viewYear}-${String(BLOG._viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      daysList.push(ds);
+    }
+
+    const calHtml=BLOG._calendarHtml(daysList);
+
+    // Selected date logs (filtered by emp)
+    const selLogs=allLogs
+      .filter(e=>e.date===BLOG._selDate)
+      .filter(e=>BLOG._selEmp==='all'||e.empId===BLOG._selEmp)
+      .sort((a,b)=>a.ts-b.ts);
+
+    const summaryHtml=BLOG._summaryHtml(selLogs);
+    const timelineHtml=BLOG._timelineHtml(selLogs);
+
+    el.innerHTML=`
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;color:var(--tx)">
+        📋 Registro de Actividad
+      </div>
+
+      <div class="card" style="margin-bottom:16px;padding:16px">
+        ${monthNav}
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">
+          ${['L','M','X','J','V','S','D'].map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--tx3);padding:2px">${d}</div>`).join('')}
+        </div>
+        ${calHtml}
+      </div>
+
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:var(--acc);margin-bottom:12px">
+        ${BLOG._fmtDate(BLOG._selDate)}
+      </div>
+
+      ${empFilter}
+      ${summaryHtml}
+      ${timelineHtml}
+    `;
+  },
+
+  _calendarHtml(days){
+    if(!days.length)return'';
+    // Pad start to Monday
+    const firstD=new Date(days[0]+'T12:00:00');
+    const dow=firstD.getDay()===0?6:firstD.getDay()-1;
+    const cells=[];
+    for(let i=0;i<dow;i++)cells.push('<div></div>');
+    days.forEach(ds=>{
+      const cnt=LOG.byDate(ds).length;
+      const isSel=ds===BLOG._selDate;
+      const isTod=ds===today();
+      // Intensity based on event count
+      let dotColor='';
+      if(cnt>=10)dotColor='#f97316';
+      else if(cnt>=5)dotColor='#4ade80';
+      else if(cnt>0)dotColor='#60a5fa';
+      const dot=cnt>0?`<div style="width:5px;height:5px;border-radius:50%;background:${dotColor};margin:2px auto 0"></div>`:'';
+      const d=new Date(ds+'T12:00:00');
+      let bg='transparent',border='1px solid transparent',color='var(--tx)',fw='400';
+      if(isSel){bg='var(--acc)';border='1px solid var(--acc)';color='#fff';fw='800';}
+      else if(isTod){border='1px solid rgba(255,255,255,.4)';fw='700';}
+      cells.push(`<div onclick="BLOG._setDate('${ds}')" style="text-align:center;padding:5px 2px;border-radius:7px;cursor:pointer;background:${bg};border:${border};min-width:0;transition:background .12s">
+        <div style="font-size:12px;font-weight:${fw};color:${color};line-height:1.2">${d.getDate()}</div>
+        ${dot}
+      </div>`);
+    });
+    return`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells.join('')}</div>`;
+  },
+
+  _summaryHtml(logs){
+    if(!logs.length)return`<div class="al al-in" style="margin-bottom:14px;font-size:13px">Sin actividad registrada este día.</div>`;
+    const counts={};
+    logs.forEach(e=>{counts[e.type]=(counts[e.type]||0)+1});
+    const chips=Object.entries(counts).map(([type,n])=>{
+      const m=LOG._meta[type]||{icon:'•',label:type,color:'#888'};
+      return`<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;background:${m.color}22;border:1px solid ${m.color}55;font-size:12px;font-weight:700;color:${m.color}">${m.icon} ${n} ${m.label}</span>`;
+    }).join('');
+    return`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${chips}</div>`;
+  },
+
+  _timelineHtml(logs){
+    if(!logs.length)return`<div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Sin actividad este día para el filtro seleccionado.</div>`;
+    const byEmp={};
+    logs.forEach(e=>{if(!byEmp[e.empId])byEmp[e.empId]=[];byEmp[e.empId].push(e);});
+    return Object.entries(byEmp).map(([eid,entries])=>{
+      const emp=getEmp(eid);
+      const rows=entries.map(e=>{
+        const m=LOG._meta[e.type]||{icon:'•',label:e.type,color:'#888'};
+        const timeStr=new Date(e.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+        let detail='';
+        if(e.taller&&e.taller!==e.empName)detail+=e.taller;
+        if(e.tipo){const at=AT[e.tipo];if(at)detail+=(detail?' · ':'')+at.icon+' '+at.label;}
+        if(e.stops!=null)detail+=(detail?' · ':'')+e.stops+' parada'+(e.stops!==1?'s':'');
+        if(e.cat){const cl={campo:'🏭 Pedido',almacen:'📦 Almacén',oficina:'💼 Oficina',albfac:'🧾 Alb./Fact.'}[e.cat];if(cl)detail+=(detail?' · ':'')+cl;}
+        if(e.actType){const at=AT[e.actType];if(at)detail+=(detail?' · ':'')+at.icon+' '+at.label;}
+        if(e.asignadoA)detail+=(detail?' → ':' → ')+e.asignadoA;
+        if(e.todos)detail+=(detail?' · ':'')+' todos los colores';
+        return`<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+          <div style="flex-shrink:0;width:40px;text-align:right;font-size:11px;font-weight:700;color:var(--tx3);padding-top:2px">${timeStr}</div>
+          <div style="width:8px;height:8px;border-radius:50%;background:${m.color};flex-shrink:0;margin-top:4px"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--tx)">${m.icon} ${m.label}</div>
+            ${detail?`<div style="font-size:11px;color:var(--tx3);margin-top:1px">${esc(detail)}</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+      return`<div class="card" style="margin-bottom:12px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:30px;height:30px;border-radius:50%;background:${emp?.color||'#555'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">${emp?.av||'?'}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--tx)">${emp?.name||eid}</div>
+          <span style="font-size:11px;color:var(--tx3);margin-left:auto">${entries.length} evento${entries.length!==1?'s':''}</span>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+  },
+
+  _fmtDate(ds){
+    if(!ds)return'';
+    const d=new Date(ds+'T12:00:00');
+    const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    return`${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
+  },
+
+  _prevMonth(){
+    if(BLOG._viewMonth===0){BLOG._viewMonth=11;BLOG._viewYear--;}
+    else BLOG._viewMonth--;
+    BLOG.render();
+  },
+  _nextMonth(){
+    const now=new Date();
+    if(BLOG._viewYear===now.getFullYear()&&BLOG._viewMonth===now.getMonth())return;
+    if(BLOG._viewMonth===11){BLOG._viewMonth=0;BLOG._viewYear++;}
+    else BLOG._viewMonth++;
+    BLOG.render();
+  },
+  _setDate(ds){
+    BLOG._selDate=ds;
+    // Si el día es de otro mes, navegar a ese mes
+    const parts=ds.split('-');
+    BLOG._viewYear=parseInt(parts[0]);
+    BLOG._viewMonth=parseInt(parts[1])-1;
+    BLOG.render();
+  },
+  _setEmp(id){ BLOG._selEmp=id; BLOG.render(); },
 };
 
 /* ─── BOOT ─── */
