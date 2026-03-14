@@ -703,8 +703,8 @@ tr:hover td{background:rgba(240,120,40,.025)}
       <div class="fg">
         <label class="fl">Prioridad</label>
         <select id="et-pri" class="fc">
-          <option value="alta">🔴 Alta (Hoy)</option>
-          <option value="media" selected>🟡 Media (Mañana)</option>
+          <option value="alta">🔴 Hoy</option>
+          <option value="media" selected>🟡 Mañana</option>
           <option value="baja">🟢 No urge</option>
           <option value="no_urge">🔵 Cuando pida</option>
         </select>
@@ -2020,7 +2020,7 @@ const DP={
       `<button class="btn btn-gh btn-sm" onclick="ETF.openEdit('${tid}');DP.close()" style="font-size:12px">✏️ Editar</button>`;
 
     let body='';
-    const priLabel={alta:'🔴 Alta (Hoy)',media:'🟡 Media (Mañana)',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[task.pri||'media']||'Media';
+    const priLabel={alta:'🔴 Hoy',media:'🟡 Mañana',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[task.pri||'media']||'Media';
     body+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap">
       <span class="badge ${cs.badge}" style="font-size:12px;padding:5px 12px">${cs.icon} ${cs.label}</span>
       ${at?`<span class="badge" style="background:${at.color}22;color:${at.color};border:1px solid ${at.color}44;font-size:12px;padding:5px 12px">${at.icon} ${at.label}</span>`:''}
@@ -3106,7 +3106,7 @@ const ET={
           ${colorInline}
           ${inlineNotes}
           <div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap">
-            <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok',no_urge:'b-in'}[t.pri]||'b-wn'}" style="font-size:13px;padding:4px 10px">${{alta:'ALTA (HOY)',media:'MEDIA (MAÑANA)',baja:'NO URGE',no_urge:'CUANDO PIDA'}[t.pri]||'MEDIA'}</span>
+            <span class="badge ${{'alta':'b-er','media':'b-wn','baja':'b-ok',no_urge:'b-in'}[t.pri]||'b-wn'}" style="font-size:13px;padding:4px 10px">${{alta:'HOY',media:'MAÑANA',baja:'NO URGE',no_urge:'CUANDO PIDA'}[t.pri]||'MEDIA'}</span>
             ${assignedEmp?`<span style="font-size:11px;color:var(--ok)">🗺 ${isMine?'En tu ruta':'Ruta de '+assignedEmp.name}</span>`:''}
           </div>
         </div>
@@ -3147,7 +3147,7 @@ const ET={
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${caStr?`<span style="font-size:11px;color:var(--tx3)">📅 ${caStr}</span>`:''}
-            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴 Alta (Hoy)',media:'🟡 Media (Mañana)',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[t.pri]||'🟡'}</span>
+            <span style="font-size:11px;font-weight:700;color:${priColor}">${{alta:'🔴 Hoy',media:'🟡 Mañana',baja:'🟢 No urge',no_urge:'🔵 Cuando pida'}[t.pri]||'🟡'}</span>
           </div>
         </div>
         ${colors.map(c=>`
@@ -4096,7 +4096,7 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off"></textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Alta (Hoy)</option><option value="media" selected>🟡 Media (Mañana)</option><option value="baja">🟢 No urge</option><option value="no_urge">🔵 Cuando pida</option></select></div>
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta">🔴 Hoy</option><option value="media" selected>🟡 Mañana</option><option value="baja">🟢 No urge</option><option value="no_urge">🔵 Cuando pida</option></select></div>
       <div id="bt-color-toggle-row" style="display:none;margin-top:4px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
           <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)">
@@ -4194,7 +4194,7 @@ const BTF={
       </div>
       <div class="fg" id="bt-txt-section" style="display:${t.cat==='campo'?'none':'block'}"><label class="fl">Descripción <span style="color:var(--er)">*</span></label><input id="bt-txt" class="fc" placeholder="Qué hay que hacer..." value="${esc(t.cat!=='campo'?t.text||'':'')}" autocomplete="off"></div>
       <div class="fg"><label class="fl">Notas</label><textarea id="bt-not" class="fc" rows="2" placeholder="Instrucciones, referencias..." autocomplete="off">${esc(t.notes||'')}</textarea></div>
-      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Alta (Hoy)</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Media (Mañana)</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 No urge</option><option value="no_urge" ${t.pri==='no_urge'?'selected':''}>🔵 Cuando pida</option></select></div>
+      <div class="fg"><label class="fl">Prioridad</label><select id="bt-pri" class="fc"><option value="alta" ${t.pri==='alta'?'selected':''}>🔴 Hoy</option><option value="media" ${t.pri==='media'||!t.pri?'selected':''}>🟡 Mañana</option><option value="baja" ${t.pri==='baja'?'selected':''}>🟢 No urge</option><option value="no_urge" ${t.pri==='no_urge'?'selected':''}>🔵 Cuando pida</option></select></div>
       <div id="bt-color-toggle-row" style="display:${(t.cat==='campo'||t.cat==='oficina')?'block':'none'};margin-top:4px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:rgba(160,80,240,.08);border:1px solid rgba(160,80,240,.25);border-radius:8px">
           <input type="checkbox" id="bt-color-chk" style="width:18px;height:18px;accent-color:#c084fc" onchange="BTF._toggleColor(this.checked)" ${(t._colorCant||t._colorMarca||t._colorAcab)?'checked':''}>
